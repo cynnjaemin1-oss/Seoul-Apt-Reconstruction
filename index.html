@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>서울 재건축 핵심단지 대시보드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Noto Sans KR', sans-serif; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .card-hover { transition: all 0.2s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    .blink { animation: blink 1.6s infinite; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel">
+// ─────────────────────────────────────────────────────────────────
+// 단지 데이터
+// stage:        완료된 마지막 단계 인덱스 (0~6)
+// stageStatus:  "completed" = 해당 단계 완료  |  "in_progress" = 현재 진행 중
+// milestones:   향후 예상 단계 & 일정 (rough)
+// priceBySize:  평형별 시세 (억원, 기준일 priceLastUpdated)
+// allocation:   현재 평형 매입 시 신규 배정 예상 평형
+// ─────────────────────────────────────────────────────────────────
+const COMPLEXES = [
+  {
+    id: 1,
+    name: "잠실장미",
+    district: "송파구",
+    dong: "잠실동",
+    totalUnits: 3522,
+    newUnits: 4800,
+    buildYear: 1979,
+    representativeArea: "59·84㎡",
+    stage: 1,
+    stageStatus: "completed",
+    stageDate: "2024.08",
+    milestones: [
+      { stage: 2, estimated: "2026 하반기" },
+      { stage: 3, estimated: "2028 상반기" },
+      { stage: 5, estimated: "2028 하반기" },
+      { stage: 6, estimated: "2033~2034" },
+    ],
+    priceBySize: [
+      { size: "59㎡", pyeong: 18, low: 12, mid: 15, high: 18 },
+      { size: "84㎡", pyeong: 25, low: 17, mid: 21, high: 25 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 42,
+    recentTx: [
+      { date: "2025.04", size: "84㎡", floor: "고층", price: 22 },
+      { date: "2025.03", size: "59㎡", floor: "중층", price: 15 },
+      { date: "2025.02", size: "84㎡", floor: "저층", price: 18 },
+    ],
+    contribution: { low: 3, high: 6, note: "사업시행인가 후 추산 예정. 비례율에 따라 상이" },
+    allocation: [
+      { buySize: "59㎡", allocRange: "59~74㎡" },
+      { buySize: "84㎡", allocRange: "84~102㎡" },
+    ],
+    generalSaleRatio: 0.31,
+    note: "신속통합기획 확정(2024.08). 최고 49층 4,800세대. 잠실 한강변 마지막 재건축. 2호선 잠실역 도보권",
+    links: {
+      naver: "https://land.naver.com/search/?query=잠실장미+송파구",
+      hogangnono: "https://hogangnono.com/apt/1Xv7a",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 2,
+    name: "잠실우성1·2·3차",
+    district: "송파구",
+    dong: "잠실동",
+    totalUnits: 3960,
+    newUnits: 5500,
+    buildYear: 1981,
+    representativeArea: "84·105㎡",
+    stage: 2,
+    stageStatus: "in_progress",
+    stageDate: "2024.06",
+    milestones: [
+      { stage: 2, estimated: "2025 하반기" },
+      { stage: 3, estimated: "2026 상반기" },
+      { stage: 4, estimated: "2026 하반기" },
+      { stage: 6, estimated: "2030~2031" },
+    ],
+    priceBySize: [
+      { size: "84㎡",  pyeong: 25, low: 16, mid: 20, high: 25 },
+      { size: "105㎡", pyeong: 32, low: 21, mid: 26, high: 31 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 52,
+    recentTx: [
+      { date: "2025.04", size: "84㎡",  floor: "고층", price: 22 },
+      { date: "2025.03", size: "105㎡", floor: "중층", price: 27 },
+      { date: "2025.02", size: "84㎡",  floor: "저층", price: 18 },
+    ],
+    contribution: { low: 3, high: 7, note: "시공사 선정 후 구체화. 삼성물산·GS건설 경합 중" },
+    allocation: [
+      { buySize: "84㎡",  allocRange: "84~101㎡" },
+      { buySize: "105㎡", allocRange: "101~122㎡" },
+    ],
+    generalSaleRatio: 0.33,
+    note: "사업시행인가 추진 중. 시공사 삼성물산·GS건설 경합. 잠실역·신천역 더블역세권. 롯데타워 조망",
+    links: {
+      naver: "https://land.naver.com/search/?query=잠실우성1차+송파구",
+      hogangnono: "https://hogangnono.com/apt/1Xc62",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 3,
+    name: "올림픽선수기자촌",
+    district: "송파구",
+    dong: "방이동",
+    totalUnits: 5540,
+    newUnits: 9000,
+    buildYear: 1988,
+    representativeArea: "84·126㎡",
+    stage: 0,
+    stageStatus: "in_progress",
+    stageDate: "2023.12",
+    milestones: [
+      { stage: 1, estimated: "2027 이후" },
+      { stage: 2, estimated: "2029 이후" },
+      { stage: 6, estimated: "2037 이후" },
+    ],
+    priceBySize: [
+      { size: "84㎡",  pyeong: 25, low: 12, mid: 16, high: 20 },
+      { size: "126㎡", pyeong: 38, low: 17, mid: 22, high: 27 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 78,
+    recentTx: [
+      { date: "2025.04", size: "84㎡",  floor: "고층", price: 17 },
+      { date: "2025.03", size: "126㎡", floor: "중층", price: 23 },
+      { date: "2025.02", size: "84㎡",  floor: "저층", price: 14 },
+    ],
+    contribution: { low: 3, high: 8, note: "초기 단계. 대단지 특성상 장기화 가능성 높음" },
+    allocation: [
+      { buySize: "84㎡",  allocRange: "84~101㎡" },
+      { buySize: "126㎡", allocRange: "101~145㎡" },
+    ],
+    generalSaleRatio: 0.42,
+    note: "1988 서울올림픽 선수촌. 5,540세대 초대형. 안전진단 통과 후 정비구역 지정 추진 중. 몽촌토성역 인근",
+    links: {
+      naver: "https://land.naver.com/search/?query=올림픽선수기자촌+송파구",
+      hogangnono: "https://hogangnono.com/apt/21J8e",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 4,
+    name: "잠실우성4차",
+    district: "송파구",
+    dong: "잠실동",
+    totalUnits: 555,
+    newUnits: 825,
+    buildYear: 1986,
+    representativeArea: "84㎡",
+    stage: 3,
+    stageStatus: "in_progress",
+    stageDate: "2024.07",
+    milestones: [
+      { stage: 3, estimated: "2025 상반기" },
+      { stage: 4, estimated: "2025 하반기" },
+      { stage: 5, estimated: "2026 상반기" },
+      { stage: 6, estimated: "2028~2029" },
+    ],
+    priceBySize: [
+      { size: "84㎡", pyeong: 25, low: 17, mid: 21, high: 26 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 9,
+    recentTx: [
+      { date: "2025.04", size: "84㎡", floor: "고층", price: 22 },
+      { date: "2025.02", size: "84㎡", floor: "중층", price: 20 },
+      { date: "2024.12", size: "84㎡", floor: "저층", price: 17 },
+    ],
+    contribution: { low: 4, high: 6, note: "DL이앤씨 시공. 49층 '아크로잠실' 추진. 관리처분인가 후 확정" },
+    allocation: [
+      { buySize: "84㎡", allocRange: "84~101㎡" },
+    ],
+    generalSaleRatio: 0.34,
+    note: "555세대 소형. 관리처분계획 총회 의결(2024.07). DL이앤씨 시공 '아크로잠실' 49층 추진. 송파구 재건축 최선행",
+    links: {
+      naver: "https://land.naver.com/search/?query=잠실우성4차+송파구",
+      hogangnono: "https://hogangnono.com/apt/1Xda4",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 5,
+    name: "성수동아",
+    district: "성동구",
+    dong: "성수동",
+    totalUnits: 660,
+    newUnits: 1800,
+    buildYear: 1985,
+    representativeArea: "59·84㎡",
+    stage: 1,
+    stageStatus: "completed",
+    stageDate: "2025.03",
+    milestones: [
+      { stage: 2, estimated: "2026 상반기" },
+      { stage: 3, estimated: "2027 상반기" },
+      { stage: 5, estimated: "2027 하반기" },
+      { stage: 6, estimated: "2031~2032" },
+    ],
+    priceBySize: [
+      { size: "59㎡", pyeong: 18, low: 22, mid: 28, high: 34 },
+      { size: "84㎡", pyeong: 25, low: 30, mid: 37, high: 46 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 14,
+    recentTx: [
+      { date: "2025.04", size: "84㎡", floor: "고층", price: 38 },
+      { date: "2025.03", size: "59㎡", floor: "중층", price: 28 },
+      { date: "2025.02", size: "84㎡", floor: "저층", price: 32 },
+    ],
+    contribution: { low: 5, high: 10, note: "성수전략정비구역. 초고층(최고 65층) 개발로 분담금 높을 수 있음" },
+    allocation: [
+      { buySize: "59㎡", allocRange: "59~84㎡" },
+      { buySize: "84㎡", allocRange: "84~114㎡" },
+    ],
+    generalSaleRatio: 0.52,
+    note: "성수전략정비구역. 정비계획 결정고시(2025.03). 최고 65층 한강변 초고층. 서울숲 인근. 10대 건설사 시공권 경쟁",
+    links: {
+      naver: "https://land.naver.com/search/?query=성수동아+성동구",
+      hogangnono: "https://hogangnono.com/region/1120011400/0/apt-list",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 6,
+    name: "개포주공6·7단지",
+    district: "강남구",
+    dong: "개포동",
+    totalUnits: 2376,
+    newUnits: 3800,
+    buildYear: 1983,
+    representativeArea: "42·59㎡",
+    stage: 1,
+    stageStatus: "completed",
+    stageDate: "2023.08",
+    milestones: [
+      { stage: 2, estimated: "2026 상반기" },
+      { stage: 3, estimated: "2027 상반기" },
+      { stage: 5, estimated: "2028 상반기" },
+      { stage: 6, estimated: "2031~2032" },
+    ],
+    priceBySize: [
+      { size: "42㎡", pyeong: 13, low: 14, mid: 17, high: 21 },
+      { size: "59㎡", pyeong: 18, low: 18, mid: 23, high: 28 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 28,
+    recentTx: [
+      { date: "2025.04", size: "59㎡", floor: "고층", price: 24 },
+      { date: "2025.03", size: "42㎡", floor: "중층", price: 17 },
+      { date: "2025.02", size: "59㎡", floor: "저층", price: 20 },
+    ],
+    contribution: { low: 4, high: 8, note: "개포 선행단지 기반 추산. 사업시행인가 후 확정" },
+    allocation: [
+      { buySize: "42㎡", allocRange: "42~59㎡" },
+      { buySize: "59㎡", allocRange: "59~84㎡" },
+    ],
+    generalSaleRatio: 0.38,
+    note: "개포 재건축 마지막 대형구역. 1·2·3단지 완공 후 마지막 퍼즐. 6·7단지 통합 추진. 대청역 인근. 대모산 조망",
+    links: {
+      naver: "https://land.naver.com/search/?query=개포주공6단지+강남구",
+      hogangnono: "https://hogangnono.com/apt/1Oubb",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 7,
+    name: "서빙고 신동아",
+    district: "용산구",
+    dong: "서빙고동",
+    totalUnits: 1326,
+    newUnits: 1903,
+    buildYear: 1982,
+    representativeArea: "84·105㎡",
+    stage: 0,
+    stageStatus: "completed",
+    stageDate: "2025.01",
+    milestones: [
+      { stage: 1, estimated: "2025 하반기" },
+      { stage: 2, estimated: "2027 하반기" },
+      { stage: 3, estimated: "2029 상반기" },
+      { stage: 6, estimated: "2033~2034" },
+    ],
+    priceBySize: [
+      { size: "84㎡",  pyeong: 25, low: 22, mid: 28, high: 36 },
+      { size: "105㎡", pyeong: 32, low: 28, mid: 35, high: 45 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 18,
+    recentTx: [
+      { date: "2025.04", size: "84㎡",  floor: "고층", price: 30 },
+      { date: "2025.03", size: "105㎡", floor: "중층", price: 37 },
+      { date: "2025.01", size: "84㎡",  floor: "저층", price: 24 },
+    ],
+    contribution: { low: 4, high: 9, note: "한강변 고가 입지. 분담금 상당 예상. 조합설립인가 추진 중" },
+    allocation: [
+      { buySize: "84㎡",  allocRange: "84~101㎡" },
+      { buySize: "105㎡", allocRange: "101~122㎡" },
+    ],
+    generalSaleRatio: 0.42,
+    note: "정비계획 결정(서울시 가결 2025.01). 최고 49층 1,903세대. 서빙고동·이촌동 한강변 핵심 입지. 용산공원 개발 수혜",
+    links: {
+      naver: "https://land.naver.com/search/?query=서빙고신동아+용산구",
+      hogangnono: "https://hogangnono.com/apt/7F04",
+      asil: "https://asil.kr/",
+    }
+  },
+  {
+    id: 8,
+    name: "도곡우성",
+    district: "강남구",
+    dong: "도곡동",
+    totalUnits: 390,
+    newUnits: 548,
+    buildYear: 1986,
+    representativeArea: "84·105㎡",
+    stage: 1,
+    stageStatus: "completed",
+    stageDate: "2025.03",
+    milestones: [
+      { stage: 2, estimated: "2027 상반기" },
+      { stage: 3, estimated: "2028 상반기" },
+      { stage: 5, estimated: "2029 상반기" },
+      { stage: 6, estimated: "2033 이후" },
+    ],
+    priceBySize: [
+      { size: "84㎡",  pyeong: 25, low: 19, mid: 25, high: 32 },
+      { size: "105㎡", pyeong: 32, low: 24, mid: 31, high: 40 },
+    ],
+    priceLastUpdated: "2025.05",
+    listings: 12,
+    recentTx: [
+      { date: "2025.04", size: "84㎡",  floor: "고층", price: 26 },
+      { date: "2025.03", size: "105㎡", floor: "중층", price: 32 },
+      { date: "2025.01", size: "84㎡",  floor: "저층", price: 21 },
+    ],
+    contribution: { low: 4, high: 8, note: "조합설립인가(2025.03.31). 정비계획변경 서울시 고시 진행 중" },
+    allocation: [
+      { buySize: "84㎡",  allocRange: "84~101㎡" },
+      { buySize: "105㎡", allocRange: "101~122㎡" },
+    ],
+    generalSaleRatio: 0.41,
+    note: "390세대 소형단지. 조합설립인가(2025.03.31). 26층 548세대 재건축 예정. 도곡렉슬·타워팰리스 인접. 매봉역 도보",
+    links: {
+      naver: "https://land.naver.com/search/?query=도곡우성+강남구",
+      hogangnono: "https://hogangnono.com/apt/1WFe5",
+      asil: "https://asil.kr/",
+    }
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────
+// 상수
+// ─────────────────────────────────────────────────────────────────
+const STAGES = [
+  { short: "구역지정",  color: "bg-gray-400",    ring: "ring-gray-400"    },
+  { short: "조합설립",  color: "bg-yellow-400",  ring: "ring-yellow-400"  },
+  { short: "사업시행",  color: "bg-blue-500",    ring: "ring-blue-500"    },
+  { short: "관리처분",  color: "bg-violet-500",  ring: "ring-violet-500"  },
+  { short: "이주·철거", color: "bg-orange-400",  ring: "ring-orange-400"  },
+  { short: "착공",      color: "bg-red-400",     ring: "ring-red-400"     },
+  { short: "준공",      color: "bg-emerald-500", ring: "ring-emerald-500" },
+];
+
+const DISTRICT_COLORS = {
+  "강남구": "bg-rose-100 text-rose-700",
+  "서초구": "bg-purple-100 text-purple-700",
+  "송파구": "bg-blue-100 text-blue-700",
+  "성동구": "bg-emerald-100 text-emerald-700",
+  "용산구": "bg-amber-100 text-amber-700",
+  "마포구": "bg-teal-100 text-teal-700",
+  "노원구": "bg-orange-100 text-orange-700",
+};
+
+const { useState, useMemo } = React;
+
+// ─────────────────────────────────────────────────────────────────
+// 서브 컴포넌트
+// ─────────────────────────────────────────────────────────────────
+
+// 진행 바: 완료(solid) / 진행중(pulsing, 반투명) / 미래(회색)
+function StageProgress({ stage, stageStatus }) {
+  return (
+    <div className="flex items-center gap-0.5 mt-5 mb-0.5">
+      {STAGES.map((s, i) => {
+        const done   = i < stage || (i === stage && stageStatus === "completed");
+        const active = i === stage && stageStatus === "in_progress";
+        return (
+          <React.Fragment key={i}>
+            <div className={`relative flex-1 h-2 rounded-full transition-all ${
+              done   ? s.color :
+              active ? s.color + " opacity-50 blink" :
+              "bg-gray-200"
+            }`}>
+              {i === stage && (
+                <span className={`absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold whitespace-nowrap ${
+                  stageStatus === "completed" ? "text-emerald-600" : "text-blue-600 blink"
+                }`}>
+                  {stageStatus === "completed" ? "✓완료" : "▼진행"}
+                </span>
+              )}
+            </div>
+            {i < STAGES.length - 1 && (
+              <div className={`w-0.5 h-2 ${i < stage ? s.color : "bg-gray-200"}`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// 현재 단계 배지
+function StageBadge({ stage, stageStatus }) {
+  const s = STAGES[stage];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${s.color} text-white`}>
+      {stageStatus === "completed" ? "✓" : "⏳"} {s.short} {stageStatus === "completed" ? "완료" : "진행중"}
+    </span>
+  );
+}
+
+// 평형별 시세 테이블
+function PriceBySizeTable({ priceBySize, priceLastUpdated }) {
+  return (
+    <div className="mt-3">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-xs font-semibold text-gray-600">💹 평형별 시세</span>
+        <span className="text-[10px] text-orange-500 font-medium">기준 {priceLastUpdated} ※ 참고용</span>
+      </div>
+      <div className="rounded-xl overflow-hidden border border-gray-100">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 text-gray-400">
+              <th className="text-left px-3 py-1.5 font-medium">평형</th>
+              <th className="text-right px-2 py-1.5 font-medium">최저</th>
+              <th className="text-right px-2 py-1.5 font-medium">평균</th>
+              <th className="text-right px-3 py-1.5 font-medium">최고</th>
+            </tr>
+          </thead>
+          <tbody>
+            {priceBySize.map((p, i) => (
+              <tr key={i} className={i > 0 ? "border-t border-gray-100" : ""}>
+                <td className="px-3 py-2 font-semibold text-gray-800">
+                  {p.size} <span className="text-gray-400 font-normal">({p.pyeong}평)</span>
+                </td>
+                <td className="text-right px-2 py-2 text-gray-500">{p.low}억</td>
+                <td className="text-right px-2 py-2 font-bold text-blue-700">{p.mid}억</td>
+                <td className="text-right px-3 py-2 text-gray-500">{p.high}억</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-gray-400 mt-1 text-right">
+        최신 시세는 아래 호갱노노 버튼에서 직접 확인
+      </p>
+    </div>
+  );
+}
+
+// 예상 배정 평형
+function AllocationTable({ allocation }) {
+  return (
+    <div className="mt-3 bg-indigo-50 rounded-xl p-3">
+      <div className="text-xs font-semibold text-indigo-700 mb-2">🏠 예상 배정 평형 가이드</div>
+      <div className="space-y-2">
+        {allocation.map((a, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <span className="text-xs text-indigo-600">현재 <strong>{a.buySize}</strong> 매입 시</span>
+            <span className="text-xs font-bold text-indigo-900">신규 {a.allocRange} 배정 가능</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[9px] text-indigo-400 mt-2">
+        ※ 비례율·권리가액에 따라 달라짐. 사업시행인가 후 관리처분계획에서 확정
+      </p>
+    </div>
+  );
+}
+
+// 향후 예상 일정
+function MilestoneSection({ milestones, currentStage, stageStatus }) {
+  const shown = milestones.filter(m =>
+    m.stage > currentStage || (m.stage === currentStage && stageStatus === "in_progress")
+  );
+  if (!shown.length) return null;
+  return (
+    <div className="mt-3">
+      <div className="text-xs font-semibold text-gray-600 mb-2">📅 향후 예상 일정</div>
+      <div className="space-y-1.5">
+        {shown.map((m, i) => (
+          <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${STAGES[m.stage].color}`} />
+              <span className="text-xs text-gray-700">{STAGES[m.stage].short}</span>
+            </div>
+            <span className="text-xs text-gray-500">{m.estimated} <span className="text-gray-400">(예상)</span></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 메인 카드
+function ComplexCard({ c, expanded, onToggle }) {
+  const distColor = DISTRICT_COLORS[c.district] || "bg-gray-100 text-gray-700";
+  // 카드 헤더 대표 시세: 84㎡ 우선, 없으면 마지막 항목
+  const heroPrice = c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1];
+
+  return (
+    <div className={`bg-white rounded-2xl border border-gray-100 card-hover overflow-hidden ${expanded ? "ring-2 ring-blue-400" : ""}`}>
+      {/* ── 카드 헤더 (항상 보임) ── */}
+      <div className="p-4 cursor-pointer" onClick={onToggle}>
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${distColor}`}>
+                {c.district} {c.dong}
+              </span>
+              <StageBadge stage={c.stage} stageStatus={c.stageStatus} />
+            </div>
+            <h3 className="text-base font-bold text-gray-900">{c.name}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {c.buildYear}년 준공 · {c.totalUnits.toLocaleString()}세대 → {c.newUnits.toLocaleString()}세대 (예정)
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-xl font-bold text-gray-900">{heroPrice.mid}<span className="text-sm font-normal text-gray-400">억</span></div>
+            <div className="text-[10px] text-gray-400">{heroPrice.size} 기준</div>
+          </div>
+        </div>
+
+        {/* 단계 진행 바 */}
+        <StageProgress stage={c.stage} stageStatus={c.stageStatus} />
+        <div className="flex justify-between mt-1">
+          {STAGES.map((s, i) => (
+            <span key={i} className={`text-[8px] text-center flex-1 ${
+              i === c.stage
+                ? c.stageStatus === "completed" ? "text-emerald-600 font-bold" : "text-blue-600 font-bold"
+                : "text-gray-400"
+            }`}>{s.short}</span>
+          ))}
+        </div>
+
+        {/* 평형별 시세 요약 칩 */}
+        <div className="flex gap-1.5 mt-3 overflow-x-auto scrollbar-hide pb-0.5">
+          {c.priceBySize.map((p, i) => (
+            <div key={i} className="shrink-0 bg-gray-50 rounded-xl px-2.5 py-1.5 text-center">
+              <div className="text-[10px] text-gray-500">{p.size}</div>
+              <div className="text-sm font-bold text-blue-700">{p.mid}<span className="text-[10px] font-normal text-gray-400">억</span></div>
+              <div className="text-[9px] text-gray-400">{p.low}~{p.high}</div>
+            </div>
+          ))}
+          <div className="shrink-0 bg-gray-50 rounded-xl px-2.5 py-1.5 text-center">
+            <div className="text-[10px] text-gray-500">매물</div>
+            <div className="text-sm font-bold text-gray-700">{c.listings}<span className="text-[10px] font-normal text-gray-400">건</span></div>
+          </div>
+          <div className="shrink-0 bg-blue-50 rounded-xl px-2.5 py-1.5 text-center">
+            <div className="text-[10px] text-blue-500">분담금</div>
+            <div className="text-sm font-bold text-blue-700">{c.contribution.low}~{c.contribution.high}<span className="text-[10px] font-normal">억</span></div>
+          </div>
+        </div>
+
+        <div className="text-center mt-2 text-[10px] text-gray-400">{expanded ? "▲ 접기" : "▼ 상세 보기"}</div>
+      </div>
+
+      {/* ── 확장 영역 ── */}
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 pb-5">
+          {/* 평형별 시세 상세 */}
+          <PriceBySizeTable priceBySize={c.priceBySize} priceLastUpdated={c.priceLastUpdated} />
+
+          {/* 최근 실거래 */}
+          <div className="mt-4">
+            <div className="text-xs font-semibold text-gray-600 mb-2">📋 최근 실거래</div>
+            <div className="space-y-1.5">
+              {c.recentTx.map((tx, i) => (
+                <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-400">{tx.date}</span>
+                  <span className="text-xs text-gray-600">{tx.size} · {tx.floor}</span>
+                  <span className="text-sm font-bold text-gray-900">{tx.price}억</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 예상 배정 평형 */}
+          <AllocationTable allocation={c.allocation} />
+
+          {/* 예상 분담금 */}
+          <div className="mt-3 bg-blue-50 rounded-xl p-3">
+            <div className="text-xs font-semibold text-blue-700 mb-1">💰 예상 분담금</div>
+            <div className="text-lg font-bold text-blue-800">{c.contribution.low}억 ~ {c.contribution.high}억</div>
+            <div className="text-[10px] text-blue-600 mt-0.5">{c.contribution.note}</div>
+          </div>
+
+          {/* 향후 일정 */}
+          <MilestoneSection milestones={c.milestones} currentStage={c.stage} stageStatus={c.stageStatus} />
+
+          {/* 부가 정보 */}
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">현 단계</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{c.stageDate}</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">일반분양 비율</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{(c.generalSaleRatio * 100).toFixed(0)}%</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">신규 세대</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{c.newUnits.toLocaleString()}세대</div>
+            </div>
+          </div>
+
+          {/* 메모 */}
+          <div className="mt-3 bg-amber-50 rounded-xl p-3">
+            <div className="text-xs text-amber-800 leading-relaxed">📌 {c.note}</div>
+          </div>
+
+          {/* 외부 링크 */}
+          <div className="mt-3 flex gap-2">
+            <a href={c.links.naver} target="_blank" rel="noopener noreferrer"
+              className="flex-1 text-center text-[11px] py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors">
+              네이버 부동산
+            </a>
+            <a href={c.links.hogangnono} target="_blank" rel="noopener noreferrer"
+              className="flex-1 text-center text-[11px] py-2 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
+              호갱노노
+            </a>
+            <a href={c.links.asil} target="_blank" rel="noopener noreferrer"
+              className="flex-1 text-center text-[11px] py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">
+              아실
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, sub, color }) {
+  return (
+    <div className={`rounded-2xl p-4 ${color}`}>
+      <div className="text-xs font-medium opacity-70 mb-1">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
+      {sub && <div className="text-xs opacity-60 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function PipelineView({ complexes, onSelect, selectedId }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="text-sm font-bold text-gray-700 mb-4">📊 사업 단계별 현황</div>
+      <div className="space-y-3">
+        {STAGES.map((s, idx) => {
+          const items = complexes.filter(c => c.stage === idx);
+          if (!items.length) return null;
+          return (
+            <div key={idx} className="flex items-start gap-3">
+              <div className={`shrink-0 w-20 text-center text-[11px] font-semibold px-2 py-1 rounded-full ${s.color} text-white mt-0.5`}>
+                {s.short}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {items.map(c => (
+                  <button key={c.id} onClick={() => onSelect(c.id)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                      selectedId === c.id
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-400"
+                    }`}>
+                    {c.name}
+                    <span className="ml-1 opacity-60">{c.stageStatus === "completed" ? "✓" : "⏳"}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PriceTable({ complexes }) {
+  const sorted = [...complexes].sort((a, b) => {
+    const aP = a.priceBySize.find(p => p.size === "84㎡") || a.priceBySize[a.priceBySize.length - 1];
+    const bP = b.priceBySize.find(p => p.size === "84㎡") || b.priceBySize[b.priceBySize.length - 1];
+    return bP.mid - aP.mid;
+  });
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="text-sm font-bold text-gray-700 mb-3">💹 단지별 시세 비교 (억원)</div>
+      <div className="overflow-x-auto scrollbar-hide">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-gray-400 border-b border-gray-100">
+              <th className="text-left py-2 font-medium">단지</th>
+              <th className="text-right py-2 font-medium">42·59㎡</th>
+              <th className="text-right py-2 font-medium">84㎡</th>
+              <th className="text-right py-2 font-medium">105㎡+</th>
+              <th className="text-right py-2 font-medium">분담금</th>
+              <th className="text-right py-2 font-medium">매물</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(c => {
+              const small  = c.priceBySize.find(p => ["42㎡","59㎡"].includes(p.size));
+              const mid84  = c.priceBySize.find(p => p.size === "84㎡");
+              const large  = c.priceBySize.find(p => ["105㎡","126㎡"].includes(p.size));
+              return (
+                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="py-2 font-medium text-gray-800">
+                    <div>{c.name}</div>
+                    <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                      {c.district}
+                      <StageBadge stage={c.stage} stageStatus={c.stageStatus} />
+                    </div>
+                  </td>
+                  <td className="text-right py-2 text-gray-600">{small ? `${small.mid}억` : "-"}</td>
+                  <td className="text-right py-2 font-bold text-blue-700">{mid84 ? `${mid84.mid}억` : "-"}</td>
+                  <td className="text-right py-2 text-gray-600">{large ? `${large.mid}억` : "-"}</td>
+                  <td className="text-right py-2 text-blue-600">{c.contribution.low}~{c.contribution.high}억</td>
+                  <td className="text-right py-2 text-gray-500">{c.listings}건</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 메인 앱
+// ─────────────────────────────────────────────────────────────────
+function App() {
+  const [expandedId, setExpandedId] = useState(null);
+  const [filterDistrict, setFilterDistrict] = useState("전체");
+  const [filterStage, setFilterStage]       = useState("전체");
+  const [sortBy, setSortBy]                 = useState("stage");
+  const [view, setView]                     = useState("cards");
+
+  const districts    = useMemo(() => ["전체", ...new Set(COMPLEXES.map(c => c.district))], []);
+  const stageOptions = useMemo(() => {
+    const used = new Set(COMPLEXES.map(c => c.stage));
+    return ["전체", ...STAGES.filter((_, i) => used.has(i)).map(s => s.short)];
+  }, []);
+
+  const filtered = useMemo(() => {
+    let list = [...COMPLEXES];
+    if (filterDistrict !== "전체") list = list.filter(c => c.district === filterDistrict);
+    if (filterStage !== "전체") {
+      const idx = STAGES.findIndex(s => s.short === filterStage);
+      list = list.filter(c => c.stage === idx);
+    }
+    const getRef = c => (c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1]).mid;
+    if (sortBy === "stage")      list.sort((a, b) => b.stage - a.stage);
+    if (sortBy === "price_desc") list.sort((a, b) => getRef(b) - getRef(a));
+    if (sortBy === "price_asc")  list.sort((a, b) => getRef(a) - getRef(b));
+    if (sortBy === "listings")   list.sort((a, b) => b.listings - a.listings);
+    return list;
+  }, [filterDistrict, filterStage, sortBy]);
+
+  const summary = useMemo(() => {
+    const getRef = c => (c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1]).mid;
+    return {
+      count:        COMPLEXES.length,
+      totalUnits:   COMPLEXES.reduce((s, c) => s + c.totalUnits, 0),
+      avgMid:       (COMPLEXES.reduce((s, c) => s + getRef(c), 0) / COMPLEXES.length).toFixed(1),
+      totalListings:COMPLEXES.reduce((s, c) => s + c.listings, 0),
+      mostAdvanced: [...COMPLEXES].sort((a, b) => b.stage - a.stage)[0],
+    };
+  }, []);
+
+  const handleToggle  = id => setExpandedId(prev => prev === id ? null : id);
+  const handlePipeSel = id => {
+    setExpandedId(id);
+    setView("cards");
+    setTimeout(() => document.getElementById(`card-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* 헤더 */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">서울 재건축 핵심단지 대시보드</h1>
+            <p className="text-sm text-gray-500 mt-1">{COMPLEXES.length}개 단지 · 단위: 억원</p>
+          </div>
+          <div className="flex gap-2">
+            <a href="https://land.naver.com/" target="_blank" rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200 transition-colors">네이버 부동산 ↗</a>
+            <a href="https://hogangnono.com/" target="_blank" rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 font-medium hover:bg-orange-200 transition-colors">호갱노노 ↗</a>
+            <a href="https://asil.kr/" target="_blank" rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition-colors">아실 ↗</a>
+          </div>
+        </div>
+      </div>
+
+      {/* 데이터 freshness 배너 */}
+      <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-2.5 mb-5 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-orange-500 text-sm">⚠️</span>
+          <span className="text-xs text-orange-700 font-medium">시세 데이터 기준: 2025년 05월 (참고용)</span>
+        </div>
+        <span className="text-[10px] text-orange-500">실투자 전 반드시 호갱노노·네이버 부동산에서 최신 시세 직접 확인</span>
+      </div>
+
+      {/* 요약 카드 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <SummaryCard label="추적 단지" value={`${summary.count}개`}
+          sub={`총 ${summary.totalUnits.toLocaleString()}세대`}
+          color="bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900" />
+        <SummaryCard label="84㎡ 평균" value={`${summary.avgMid}억`}
+          sub="단지별 84㎡ 중위가 평균"
+          color="bg-gradient-to-br from-purple-50 to-purple-100 text-purple-900" />
+        <SummaryCard label="전체 매물" value={`${summary.totalListings}건`}
+          sub="조합원 매물 포함 추산"
+          color="bg-gradient-to-br from-teal-50 to-teal-100 text-teal-900" />
+        <SummaryCard label="최선행 단지"
+          value={summary.mostAdvanced.name.split(" ")[0]}
+          sub={`${STAGES[summary.mostAdvanced.stage].short} ${summary.mostAdvanced.stageStatus === "completed" ? "완료" : "진행중"}`}
+          color="bg-gradient-to-br from-rose-50 to-rose-100 text-rose-900" />
+      </div>
+
+      {/* 단계 범례 */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5">
+        <div className="text-xs font-semibold text-gray-500 mb-2">재건축 진행 단계</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {STAGES.map((s, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 rounded-full ${s.color}`} />
+              <span className="text-xs text-gray-600">{s.short}</span>
+              {i < STAGES.length - 1 && <span className="text-gray-300 text-xs">→</span>}
+            </div>
+          ))}
+          <div className="ml-2 pl-2 border-l border-gray-200 flex items-center gap-3 text-xs text-gray-500">
+            <span>✓ = 단계 완료</span>
+            <span>⏳ = 현재 진행중</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 필터 & 뷰 */}
+      <div className="flex flex-wrap gap-3 mb-5 items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+            {districts.map(d => (
+              <button key={d} onClick={() => setFilterDistrict(d)}
+                className={`text-xs px-3 py-1.5 rounded-lg transition-all ${filterDistrict === d ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
+                {d}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+            {stageOptions.map(s => (
+              <button key={s} onClick={() => setFilterStage(s)}
+                className={`text-xs px-3 py-1.5 rounded-lg transition-all ${filterStage === s ? "bg-violet-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2 items-center">
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            className="text-xs px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 outline-none">
+            <option value="stage">단계순</option>
+            <option value="price_desc">시세 높은순</option>
+            <option value="price_asc">시세 낮은순</option>
+            <option value="listings">매물 많은순</option>
+          </select>
+          <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+            {[["cards","카드뷰"],["pipeline","단계뷰"],["table","비교표"]].map(([v, label]) => (
+              <button key={v} onClick={() => setView(v)}
+                className={`text-xs px-3 py-1.5 rounded-lg transition-all ${view === v ? "bg-gray-800 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 메인 콘텐츠 */}
+      {view === "cards" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(c => (
+            <div key={c.id} id={`card-${c.id}`}>
+              <ComplexCard c={c} expanded={expandedId === c.id} onToggle={() => handleToggle(c.id)} />
+            </div>
+          ))}
+          {!filtered.length && (
+            <div className="col-span-3 text-center py-16 text-gray-400">필터 조건에 맞는 단지가 없습니다.</div>
+          )}
+        </div>
+      )}
+      {view === "pipeline" && (
+        <PipelineView complexes={filtered} onSelect={handlePipeSel} selectedId={expandedId} />
+      )}
+      {view === "table" && <PriceTable complexes={filtered} />}
+
+      <div className="mt-10 text-center text-xs text-gray-400 space-y-1">
+        <div>데이터 출처: 네이버 부동산 · 호갱노노 · 아실 · 각 조합 공시 / 투자 전 직접 확인 필수</div>
+        <div>단지 추가·수정: index.html 상단 COMPLEXES 배열 편집</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
