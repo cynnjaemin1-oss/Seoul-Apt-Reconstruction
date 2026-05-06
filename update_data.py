@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 
 API_KEY   = os.environ.get("MOLIT_API_KEY", "")
 # ✅ 핵심 수정: serviceKey를 URL에 직접 붙여서 이중인코딩 방지
-API_BASE  = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade?serviceKey=" + API_KEY
+API_BASE  = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDevDev/getRTMSDataSvcAptTradeDev?serviceKey=" + API_KEY
 DATA_FILE = "data.json"
 TX_COUNT  = 3
 MONTHS_BACK = 6
