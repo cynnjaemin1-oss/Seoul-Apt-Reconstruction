@@ -23,341 +23,6 @@
 <div id="root"></div>
 
 <script type="text/babel">
-const COMPLEXES = [
-  {
-    id: 1,
-    name: "잠실장미",
-    district: "송파구",
-    dong: "잠실동",
-    totalUnits: 3522,
-    newUnits: 4800,
-    buildYear: 1979,
-    representativeArea: "59·84㎡",
-    stage: 1,
-    stageStatus: "completed",
-    stageDate: "2024.08",
-    milestones: [
-      { stage: 2, estimated: "2026 하반기" },
-      { stage: 3, estimated: "2028 상반기" },
-      { stage: 5, estimated: "2028 하반기" },
-      { stage: 6, estimated: "2033~2034" },
-    ],
-    priceBySize: [
-      { size: "59㎡", pyeong: 18, low: 12, mid: 15, high: 18 },
-      { size: "84㎡", pyeong: 25, low: 17, mid: 21, high: 25 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 42,
-    recentTx: [
-      { date: "2025.04", size: "84㎡", floor: "고층", price: 22 },
-      { date: "2025.03", size: "59㎡", floor: "중층", price: 15 },
-      { date: "2025.02", size: "84㎡", floor: "저층", price: 18 },
-    ],
-    contribution: { low: 3, high: 6, note: "사업시행인가 후 추산 예정. 비례율에 따라 상이" },
-    allocation: [
-      { buySize: "59㎡", allocRange: "59~74㎡" },
-      { buySize: "84㎡", allocRange: "84~102㎡" },
-    ],
-    generalSaleRatio: 0.31,
-    note: "신속통합기획 확정(2024.08). 최고 49층 4,800세대. 잠실 한강변 마지막 재건축. 2호선 잠실역 도보권",
-    links: {
-      naver: "https://land.naver.com/search/?query=잠실장미+송파구",
-      hogangnono: "https://hogangnono.com/apt/1Xv7a",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 2,
-    name: "잠실우성1·2·3차",
-    district: "송파구",
-    dong: "잠실동",
-    totalUnits: 3960,
-    newUnits: 5500,
-    buildYear: 1981,
-    representativeArea: "84·105㎡",
-    stage: 2,
-    stageStatus: "in_progress",
-    stageDate: "2024.06",
-    milestones: [
-      { stage: 2, estimated: "2025 하반기" },
-      { stage: 3, estimated: "2026 상반기" },
-      { stage: 4, estimated: "2026 하반기" },
-      { stage: 6, estimated: "2030~2031" },
-    ],
-    priceBySize: [
-      { size: "84㎡",  pyeong: 25, low: 16, mid: 20, high: 25 },
-      { size: "105㎡", pyeong: 32, low: 21, mid: 26, high: 31 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 52,
-    recentTx: [
-      { date: "2025.04", size: "84㎡",  floor: "고층", price: 22 },
-      { date: "2025.03", size: "105㎡", floor: "중층", price: 27 },
-      { date: "2025.02", size: "84㎡",  floor: "저층", price: 18 },
-    ],
-    contribution: { low: 3, high: 7, note: "시공사 선정 후 구체화. 삼성물산·GS건설 경합 중" },
-    allocation: [
-      { buySize: "84㎡",  allocRange: "84~101㎡" },
-      { buySize: "105㎡", allocRange: "101~122㎡" },
-    ],
-    generalSaleRatio: 0.33,
-    note: "사업시행인가 추진 중. 시공사 삼성물산·GS건설 경합. 잠실역·신천역 더블역세권. 롯데타워 조망",
-    links: {
-      naver: "https://land.naver.com/search/?query=잠실우성1차+송파구",
-      hogangnono: "https://hogangnono.com/apt/1Xc62",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 3,
-    name: "올림픽선수기자촌",
-    district: "송파구",
-    dong: "방이동",
-    totalUnits: 5540,
-    newUnits: 9000,
-    buildYear: 1988,
-    representativeArea: "84·126㎡",
-    stage: 0,
-    stageStatus: "in_progress",
-    stageDate: "2023.12",
-    milestones: [
-      { stage: 1, estimated: "2027 이후" },
-      { stage: 2, estimated: "2029 이후" },
-      { stage: 6, estimated: "2037 이후" },
-    ],
-    priceBySize: [
-      { size: "84㎡",  pyeong: 25, low: 12, mid: 16, high: 20 },
-      { size: "126㎡", pyeong: 38, low: 17, mid: 22, high: 27 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 78,
-    recentTx: [
-      { date: "2025.04", size: "84㎡",  floor: "고층", price: 17 },
-      { date: "2025.03", size: "126㎡", floor: "중층", price: 23 },
-      { date: "2025.02", size: "84㎡",  floor: "저층", price: 14 },
-    ],
-    contribution: { low: 3, high: 8, note: "초기 단계. 대단지 특성상 장기화 가능성 높음" },
-    allocation: [
-      { buySize: "84㎡",  allocRange: "84~101㎡" },
-      { buySize: "126㎡", allocRange: "101~145㎡" },
-    ],
-    generalSaleRatio: 0.42,
-    note: "1988 서울올림픽 선수촌. 5,540세대 초대형. 안전진단 통과 후 정비구역 지정 추진 중. 몽촌토성역 인근",
-    links: {
-      naver: "https://land.naver.com/search/?query=올림픽선수기자촌+송파구",
-      hogangnono: "https://hogangnono.com/apt/21J8e",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 4,
-    name: "잠실우성4차",
-    district: "송파구",
-    dong: "잠실동",
-    totalUnits: 555,
-    newUnits: 825,
-    buildYear: 1986,
-    representativeArea: "84㎡",
-    stage: 3,
-    stageStatus: "in_progress",
-    stageDate: "2024.07",
-    milestones: [
-      { stage: 3, estimated: "2025 상반기" },
-      { stage: 4, estimated: "2025 하반기" },
-      { stage: 5, estimated: "2026 상반기" },
-      { stage: 6, estimated: "2028~2029" },
-    ],
-    priceBySize: [
-      { size: "84㎡", pyeong: 25, low: 17, mid: 21, high: 26 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 9,
-    recentTx: [
-      { date: "2025.04", size: "84㎡", floor: "고층", price: 22 },
-      { date: "2025.02", size: "84㎡", floor: "중층", price: 20 },
-      { date: "2024.12", size: "84㎡", floor: "저층", price: 17 },
-    ],
-    contribution: { low: 4, high: 6, note: "DL이앤씨 시공. 49층 '아크로잠실' 추진. 관리처분인가 후 확정" },
-    allocation: [
-      { buySize: "84㎡", allocRange: "84~101㎡" },
-    ],
-    generalSaleRatio: 0.34,
-    note: "555세대 소형. 관리처분계획 총회 의결(2024.07). DL이앤씨 시공 '아크로잠실' 49층 추진. 송파구 재건축 최선행",
-    links: {
-      naver: "https://land.naver.com/search/?query=잠실우성4차+송파구",
-      hogangnono: "https://hogangnono.com/apt/1Xda4",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 5,
-    name: "성수동아",
-    district: "성동구",
-    dong: "성수동",
-    totalUnits: 660,
-    newUnits: 1800,
-    buildYear: 1985,
-    representativeArea: "59·84㎡",
-    stage: 1,
-    stageStatus: "completed",
-    stageDate: "2025.03",
-    milestones: [
-      { stage: 2, estimated: "2026 상반기" },
-      { stage: 3, estimated: "2027 상반기" },
-      { stage: 5, estimated: "2027 하반기" },
-      { stage: 6, estimated: "2031~2032" },
-    ],
-    priceBySize: [
-      { size: "59㎡", pyeong: 18, low: 22, mid: 28, high: 34 },
-      { size: "84㎡", pyeong: 25, low: 30, mid: 37, high: 46 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 14,
-    recentTx: [
-      { date: "2025.04", size: "84㎡", floor: "고층", price: 38 },
-      { date: "2025.03", size: "59㎡", floor: "중층", price: 28 },
-      { date: "2025.02", size: "84㎡", floor: "저층", price: 32 },
-    ],
-    contribution: { low: 5, high: 10, note: "성수전략정비구역. 초고층(최고 65층) 개발로 분담금 높을 수 있음" },
-    allocation: [
-      { buySize: "59㎡", allocRange: "59~84㎡" },
-      { buySize: "84㎡", allocRange: "84~114㎡" },
-    ],
-    generalSaleRatio: 0.52,
-    note: "성수전략정비구역. 정비계획 결정고시(2025.03). 최고 65층 한강변 초고층. 서울숲 인근. 10대 건설사 시공권 경쟁",
-    links: {
-      naver: "https://land.naver.com/search/?query=성수동아+성동구",
-      hogangnono: "https://hogangnono.com/region/1120011400/0/apt-list",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 6,
-    name: "개포주공6·7단지",
-    district: "강남구",
-    dong: "개포동",
-    totalUnits: 2376,
-    newUnits: 3800,
-    buildYear: 1983,
-    representativeArea: "42·59㎡",
-    stage: 1,
-    stageStatus: "completed",
-    stageDate: "2023.08",
-    milestones: [
-      { stage: 2, estimated: "2026 상반기" },
-      { stage: 3, estimated: "2027 상반기" },
-      { stage: 5, estimated: "2028 상반기" },
-      { stage: 6, estimated: "2031~2032" },
-    ],
-    priceBySize: [
-      { size: "42㎡", pyeong: 13, low: 14, mid: 17, high: 21 },
-      { size: "59㎡", pyeong: 18, low: 18, mid: 23, high: 28 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 28,
-    recentTx: [
-      { date: "2025.04", size: "59㎡", floor: "고층", price: 24 },
-      { date: "2025.03", size: "42㎡", floor: "중층", price: 17 },
-      { date: "2025.02", size: "59㎡", floor: "저층", price: 20 },
-    ],
-    contribution: { low: 4, high: 8, note: "개포 선행단지 기반 추산. 사업시행인가 후 확정" },
-    allocation: [
-      { buySize: "42㎡", allocRange: "42~59㎡" },
-      { buySize: "59㎡", allocRange: "59~84㎡" },
-    ],
-    generalSaleRatio: 0.38,
-    note: "개포 재건축 마지막 대형구역. 1·2·3단지 완공 후 마지막 퍼즐. 6·7단지 통합 추진. 대청역 인근. 대모산 조망",
-    links: {
-      naver: "https://land.naver.com/search/?query=개포주공6단지+강남구",
-      hogangnono: "https://hogangnono.com/apt/1Oubb",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 7,
-    name: "서빙고 신동아",
-    district: "용산구",
-    dong: "서빙고동",
-    totalUnits: 1326,
-    newUnits: 1903,
-    buildYear: 1982,
-    representativeArea: "84·105㎡",
-    stage: 0,
-    stageStatus: "completed",
-    stageDate: "2025.01",
-    milestones: [
-      { stage: 1, estimated: "2025 하반기" },
-      { stage: 2, estimated: "2027 하반기" },
-      { stage: 3, estimated: "2029 상반기" },
-      { stage: 6, estimated: "2033~2034" },
-    ],
-    priceBySize: [
-      { size: "84㎡",  pyeong: 25, low: 22, mid: 28, high: 36 },
-      { size: "105㎡", pyeong: 32, low: 28, mid: 35, high: 45 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 18,
-    recentTx: [
-      { date: "2025.04", size: "84㎡",  floor: "고층", price: 30 },
-      { date: "2025.03", size: "105㎡", floor: "중층", price: 37 },
-      { date: "2025.01", size: "84㎡",  floor: "저층", price: 24 },
-    ],
-    contribution: { low: 4, high: 9, note: "한강변 고가 입지. 분담금 상당 예상. 조합설립인가 추진 중" },
-    allocation: [
-      { buySize: "84㎡",  allocRange: "84~101㎡" },
-      { buySize: "105㎡", allocRange: "101~122㎡" },
-    ],
-    generalSaleRatio: 0.42,
-    note: "정비계획 결정(서울시 가결 2025.01). 최고 49층 1,903세대. 서빙고동·이촌동 한강변 핵심 입지. 용산공원 개발 수혜",
-    links: {
-      naver: "https://land.naver.com/search/?query=서빙고신동아+용산구",
-      hogangnono: "https://hogangnono.com/apt/7F04",
-      asil: "https://asil.kr/",
-    }
-  },
-  {
-    id: 8,
-    name: "도곡우성",
-    district: "강남구",
-    dong: "도곡동",
-    totalUnits: 390,
-    newUnits: 548,
-    buildYear: 1986,
-    representativeArea: "84·105㎡",
-    stage: 1,
-    stageStatus: "completed",
-    stageDate: "2025.03",
-    milestones: [
-      { stage: 2, estimated: "2027 상반기" },
-      { stage: 3, estimated: "2028 상반기" },
-      { stage: 5, estimated: "2029 상반기" },
-      { stage: 6, estimated: "2033 이후" },
-    ],
-    priceBySize: [
-      { size: "84㎡",  pyeong: 25, low: 19, mid: 25, high: 32 },
-      { size: "105㎡", pyeong: 32, low: 24, mid: 31, high: 40 },
-    ],
-    priceLastUpdated: "2025.05",
-    listings: 12,
-    recentTx: [
-      { date: "2025.04", size: "84㎡",  floor: "고층", price: 26 },
-      { date: "2025.03", size: "105㎡", floor: "중층", price: 32 },
-      { date: "2025.01", size: "84㎡",  floor: "저층", price: 21 },
-    ],
-    contribution: { low: 4, high: 8, note: "조합설립인가(2025.03.31). 정비계획변경 서울시 고시 진행 중" },
-    allocation: [
-      { buySize: "84㎡",  allocRange: "84~101㎡" },
-      { buySize: "105㎡", allocRange: "101~122㎡" },
-    ],
-    generalSaleRatio: 0.41,
-    note: "390세대 소형단지. 조합설립인가(2025.03.31). 26층 548세대 재건축 예정. 도곡렉슬·타워팰리스 인접. 매봉역 도보",
-    links: {
-      naver: "https://land.naver.com/search/?query=도곡우성+강남구",
-      hogangnono: "https://hogangnono.com/apt/1WFe5",
-      asil: "https://asil.kr/",
-    }
-  },
-];
 
 const STAGES = [
   { short: "구역지정",  color: "bg-gray-400",    ring: "ring-gray-400"    },
@@ -379,7 +44,7 @@ const DISTRICT_COLORS = {
   "노원구": "bg-orange-100 text-orange-700",
 };
 
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 
 function StageProgress({ stage, stageStatus }) {
   return (
@@ -719,18 +384,45 @@ function PriceTable({ complexes }) {
   );
 }
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-4xl mb-4">🏗️</div>
+        <div className="text-gray-500 text-sm">단지 데이터 불러오는 중...</div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const [COMPLEXES, setCOMPLEXES] = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [filterDistrict, setFilterDistrict] = useState("전체");
   const [filterStage, setFilterStage]       = useState("전체");
   const [sortBy, setSortBy]                 = useState("stage");
   const [view, setView]                     = useState("cards");
 
-  const districts    = useMemo(() => ["전체", ...new Set(COMPLEXES.map(c => c.district))], []);
+  // ✅ 핵심: data.json에서 데이터 로드
+  useEffect(() => {
+    fetch('./data.json?v=' + Date.now())   // ?v=... 는 브라우저 캐시 우회용
+      .then(r => r.json())
+      .then(data => {
+        setCOMPLEXES(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("data.json 로드 실패:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const districts    = useMemo(() => ["전체", ...new Set(COMPLEXES.map(c => c.district))], [COMPLEXES]);
   const stageOptions = useMemo(() => {
     const used = new Set(COMPLEXES.map(c => c.stage));
     return ["전체", ...STAGES.filter((_, i) => used.has(i)).map(s => s.short)];
-  }, []);
+  }, [COMPLEXES]);
 
   const filtered = useMemo(() => {
     let list = [...COMPLEXES];
@@ -745,9 +437,10 @@ function App() {
     if (sortBy === "price_asc")  list.sort((a, b) => getRef(a) - getRef(b));
     if (sortBy === "listings")   list.sort((a, b) => b.listings - a.listings);
     return list;
-  }, [filterDistrict, filterStage, sortBy]);
+  }, [COMPLEXES, filterDistrict, filterStage, sortBy]);
 
   const summary = useMemo(() => {
+    if (!COMPLEXES.length) return null;
     const getRef = c => (c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1]).mid;
     return {
       count:        COMPLEXES.length,
@@ -756,7 +449,7 @@ function App() {
       totalListings:COMPLEXES.reduce((s, c) => s + c.listings, 0),
       mostAdvanced: [...COMPLEXES].sort((a, b) => b.stage - a.stage)[0],
     };
-  }, []);
+  }, [COMPLEXES]);
 
   const handleToggle  = id => setExpandedId(prev => prev === id ? null : id);
   const handlePipeSel = id => {
@@ -764,6 +457,9 @@ function App() {
     setView("cards");
     setTimeout(() => document.getElementById(`card-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
   };
+
+  if (loading) return <LoadingScreen />;
+  if (!summary) return <div className="text-center py-20 text-red-500">데이터 로드 실패. data.json 파일을 확인해주세요.</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -777,7 +473,7 @@ function App() {
             <a href="https://land.naver.com/" target="_blank" rel="noopener noreferrer"
               className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200 transition-colors">네이버 부동산 ↗</a>
             <a href="https://hogangnono.com/" target="_blank" rel="noopener noreferrer"
-              className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 font-medium hover:bg-orange-200 transition-colors">호갱노노 ↗</a>
+              className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 font-medium hover:bg-green-200 transition-colors">호갱노노 ↗</a>
             <a href="https://asil.kr/" target="_blank" rel="noopener noreferrer"
               className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition-colors">아실 ↗</a>
           </div>
@@ -849,7 +545,7 @@ function App() {
             className="text-xs px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 outline-none">
             <option value="stage">단계순</option>
             <option value="price_desc">시세 높은순</option>
-            <option value="price_asc">시세 낙은순</option>
+            <option value="price_asc">시세 낮은순</option>
             <option value="listings">매물 많은순</option>
           </select>
           <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
@@ -882,7 +578,7 @@ function App() {
 
       <div className="mt-10 text-center text-xs text-gray-400 space-y-1">
         <div>데이터 출처: 네이버 부동산 · 호갱노노 · 아실 · 각 조합 공시 / 투자 전 직접 확인 필수</div>
-        <div>단지 추가·수정: index.html 상단 COMPLEXES 배열 편집</div>
+        <div>단지 추가·수정: <strong>data.json</strong> 파일만 편집하면 됩니다</div>
       </div>
     </div>
   );
