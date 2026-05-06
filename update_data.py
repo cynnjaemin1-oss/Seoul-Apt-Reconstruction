@@ -1,9 +1,6 @@
 """
 서울 재건축 대시보드 - 실거래가 자동 업데이트 스크립트
 국토교통부 아파트매매 실거래가 API → data.json recentTx 자동 갱신
-
-실행 방법:
-  MOLIT_API_KEY=발급받은키 python update_data.py
 """
 
 import json
@@ -11,23 +8,15 @@ import os
 import time
 import requests
 from datetime import datetime
-from dateutil.relativedelta import relativedelta  # pip install python-dateutil
-
-
-# ──────────────────────────────────────────────
-# 설정값
-# ──────────────────────────────────────────────
+from dateutil.relativedelta import relativedelta
 
 API_KEY   = os.environ.get("MOLIT_API_KEY", "")
-API_URL   = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade"
+# ✅ 핵심 수정: serviceKey를 URL에 직접 붙여서 이중인코딩 방지
+API_BASE  = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade?serviceKey=" + API_KEY
 DATA_FILE = "data.json"
-TX_COUNT  = 3      # 단지별 최근 실거래 몇 건 저장할지
-MONTHS_BACK = 6    # 최근 몇 개월치를 조회할지 (거래가 없을 수도 있으니 넉넉하게)
+TX_COUNT  = 3
+MONTHS_BACK = 6
 
-
-# ──────────────────────────────────────────────
-# 구별 법정동 코드 (앞 5자리)
-# ──────────────────────────────────────────────
 DISTRICT_CODES = {
     "강남구": "11680",
     "서초구": "11650",
@@ -38,11 +27,6 @@ DISTRICT_CODES = {
     "노원구": "11350",
 }
 
-
-# ──────────────────────────────────────────────
-# 단지명 → API 검색 키워드 매핑
-# (API 응답의 아파트명이 data.json 이름과 다를 수 있어서 명시적으로 정의)
-# ──────────────────────────────────────────────
 COMPLEX_SEARCH_NAMES = {
     "잠실장미":          ["잠실장미"],
     "잠실우성1·2·3차":   ["잠실우성1차", "잠실우성2차", "잠실우성3차"],
@@ -54,10 +38,6 @@ COMPLEX_SEARCH_NAMES = {
     "도곡우성":          ["도곡우성"],
 }
 
-
-# ──────────────────────────────────────────────
-# 층 분류 (숫자 → 저층/중층/고층)
-# ──────────────────────────────────────────────
 def classify_floor(floor_str):
     try:
         floor = int(str(floor_str).strip())
@@ -67,10 +47,6 @@ def classify_floor(floor_str):
     except:
         return "중층"
 
-
-# ──────────────────────────────────────────────
-# 전용면적 → 평형 문자열 변환
-# ──────────────────────────────────────────────
 def area_to_size_label(area_str):
     try:
         area = float(str(area_str).strip())
@@ -82,27 +58,23 @@ def area_to_size_label(area_str):
     except:
         return "84㎡"
 
-
-# ──────────────────────────────────────────────
-# API 호출: 특정 구 + 특정 월의 아파트 실거래 전체 조회
-# ──────────────────────────────────────────────
 def fetch_transactions(district_code, yyyymm):
+    # ✅ serviceKey는 URL에 이미 포함 → params에는 나머지만
     params = {
-        "serviceKey": API_KEY,
         "LAWD_CD":    district_code,
         "DEAL_YMD":   yyyymm,
         "numOfRows":  1000,
         "pageNo":     1,
+        "_type":      "json",
     }
     try:
-        resp = requests.get(API_URL, params=params, timeout=10)
+        resp = requests.get(API_BASE, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
         items = data.get("response", {}).get("body", {}).get("items", {})
         if not items:
             return []
         item = items.get("item", [])
-        # 결과가 1건이면 dict로 오는 경우 있음
         if isinstance(item, dict):
             item = [item]
         return item
@@ -110,10 +82,6 @@ def fetch_transactions(district_code, yyyymm):
         print(f"  ⚠️  API 호출 실패 ({district_code}, {yyyymm}): {e}")
         return []
 
-
-# ──────────────────────────────────────────────
-# 단지 하나의 최근 실거래 N건 조회
-# ──────────────────────────────────────────────
 def get_recent_tx_for_complex(complex_name, district, n=TX_COUNT):
     district_code = DISTRICT_CODES.get(district)
     if not district_code:
@@ -129,51 +97,37 @@ def get_recent_tx_for_complex(complex_name, district, n=TX_COUNT):
         yyyymm = target.strftime("%Y%m")
 
         items = fetch_transactions(district_code, yyyymm)
-        time.sleep(0.3)  # API 호출 간격 (과부하 방지)
+        time.sleep(0.3)
 
         for item in items:
             apt_name = str(item.get("아파트", "")).strip()
             if any(s in apt_name for s in search_names):
-                # 날짜 파싱
                 year  = str(item.get("년", "")).strip()
                 month = str(item.get("월", "")).strip().zfill(2)
                 price_raw = str(item.get("거래금액", "0")).replace(",", "").strip()
-
                 try:
-                    price_eok = round(int(price_raw) / 10000, 1)  # 만원 → 억원
+                    price_eok = round(int(price_raw) / 10000, 1)
                 except:
                     price_eok = 0
 
                 all_tx.append({
-                    "date":  f"{year}.{month}",
-                    "size":  area_to_size_label(item.get("전용면적", "84")),
-                    "floor": classify_floor(item.get("층", "10")),
-                    "price": price_eok,
+                    "date":      f"{year}.{month}",
+                    "size":      area_to_size_label(item.get("전용면적", "84")),
+                    "floor":     classify_floor(item.get("층", "10")),
+                    "price":     price_eok,
                     "_sort_key": f"{year}{month}",
                 })
 
         if len(all_tx) >= n:
-            break  # 충분히 모였으면 조기 종료
+            break
 
     if not all_tx:
         return None
 
-    # 최신순 정렬 후 상위 N건
     all_tx.sort(key=lambda x: x["_sort_key"], reverse=True)
-    result = []
-    for tx in all_tx[:n]:
-        result.append({
-            "date":  tx["date"],
-            "size":  tx["size"],
-            "floor": tx["floor"],
-            "price": tx["price"],
-        })
-    return result
+    return [{"date": tx["date"], "size": tx["size"], "floor": tx["floor"], "price": tx["price"]}
+            for tx in all_tx[:n]]
 
-
-# ──────────────────────────────────────────────
-# 메인 실행
-# ──────────────────────────────────────────────
 def main():
     if not API_KEY:
         print("❌ MOLIT_API_KEY 환경변수가 없습니다.")
@@ -201,10 +155,6 @@ def main():
         else:
             print(f"  ⚠️  실거래 데이터 없음 (기존 데이터 유지)")
 
-    # 업데이트 날짜를 파일 맨 아래에 기록
-    meta_key = "_lastUpdated"
-    # data.json은 배열이므로 첫 번째 항목에 메타 추가하지 않고,
-    # 별도 meta.json에 저장 (선택사항 — 일단 콘솔 출력으로만)
     today = datetime.now().strftime("%Y.%m.%d")
     print(f"\n▶ 총 {updated_count}개 단지 업데이트 완료 ({today})")
 
@@ -212,7 +162,6 @@ def main():
         json.dump(complexes, f, ensure_ascii=False, indent=2)
 
     print("▶ data.json 저장 완료")
-
 
 if __name__ == "__main__":
     main()
