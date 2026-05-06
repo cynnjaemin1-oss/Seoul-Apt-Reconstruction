@@ -5,6 +5,10 @@ on:
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
+# ✅ 핵심 수정: 레포 쓰기 권한 추가
+permissions:
+  contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
