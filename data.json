@@ -227,22 +227,22 @@
     "listings": 78,
     "recentTx": [
       {
-        "date": "2025.04",
-        "size": "84㎡",
-        "floor": "고층",
-        "price": 17
+        "date": "2026.04",
+        "size": "105㎡",
+        "floor": "중층",
+        "price": 29.6
       },
       {
-        "date": "2025.03",
+        "date": "2026.04",
         "size": "126㎡",
         "floor": "중층",
-        "price": 23
+        "price": 41.7
       },
       {
-        "date": "2025.02",
-        "size": "84㎡",
+        "date": "2026.04",
+        "size": "126㎡",
         "floor": "저층",
-        "price": 14
+        "price": 37.0
       }
     ],
     "contribution": {
@@ -489,22 +489,22 @@
     "listings": 28,
     "recentTx": [
       {
-        "date": "2025.04",
-        "size": "59㎡",
-        "floor": "고층",
-        "price": 24
-      },
-      {
-        "date": "2025.03",
-        "size": "42㎡",
-        "floor": "중층",
-        "price": 17
-      },
-      {
-        "date": "2025.02",
-        "size": "59㎡",
+        "date": "2026.04",
+        "size": "84㎡",
         "floor": "저층",
-        "price": 20
+        "price": 37.5
+      },
+      {
+        "date": "2026.02",
+        "size": "59㎡",
+        "floor": "중층",
+        "price": 31.2
+      },
+      {
+        "date": "2026.01",
+        "size": "84㎡",
+        "floor": "저층",
+        "price": 36.0
       }
     ],
     "contribution": {
@@ -671,22 +671,10 @@
     "listings": 12,
     "recentTx": [
       {
-        "date": "2025.04",
+        "date": "2026.02",
         "size": "84㎡",
-        "floor": "고층",
-        "price": 26
-      },
-      {
-        "date": "2025.03",
-        "size": "105㎡",
         "floor": "중층",
-        "price": 32
-      },
-      {
-        "date": "2025.01",
-        "size": "84㎡",
-        "floor": "저층",
-        "price": 21
+        "price": 27.5
       }
     ],
     "contribution": {
