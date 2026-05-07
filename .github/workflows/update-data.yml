@@ -26,31 +26,11 @@ jobs:
       - name: 라이브러리 설치
         run: pip install requests python-dateutil
 
-      - name: API 응답 진단
-        env:
-          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
-        run: |
-          python - <<'EOF'
-          import urllib.request, urllib.parse, os
-          key = os.environ["MOLIT_API_KEY"]
-          print(f"키 길이: {len(key)}자")
-          encoded_key = urllib.parse.quote(key, safe='')
-          params = urllib.parse.urlencode({"LAWD_CD": "11710", "DEAL_YMD": "202604", "numOfRows": "5", "pageNo": "1", "_type": "json"})
-          url = f"http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev?serviceKey={encoded_key}&{params}"
-          print(f"URL (키 제외): ...getRTMSDataSvcAptTradeDev?serviceKey=***&{params}")
-          try:
-              with urllib.request.urlopen(url, timeout=15) as resp:
-                  print(f"HTTP 상태코드: {resp.status}")
-                  print(f"응답 내용:\n{resp.read().decode('utf-8')[:500]}")
-          except Exception as e:
-              print(f"에러: {e}")
-          EOF
-
       - name: 아파트명 진단
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: |
-          python - <<'EOF'
+          python - <<'PYEOF'
           import urllib.request, urllib.parse, json, os
 
           API_KEY = os.environ["MOLIT_API_KEY"]
@@ -60,31 +40,40 @@ jobs:
               encoded_key = urllib.parse.quote(API_KEY, safe='')
               params = urllib.parse.urlencode({"LAWD_CD": district_code, "DEAL_YMD": yyyymm, "numOfRows": 1000, "pageNo": 1, "_type": "json"})
               url = f"{API_URL}?serviceKey={encoded_key}&{params}"
-              with urllib.request.urlopen(url, timeout=15) as r:
-                  data = json.loads(r.read().decode("utf-8"))
-              items = data.get("response", {}).get("body", {}).get("items", {})
-              if not items: return []
-              item = items.get("item", [])
-              return [item] if isinstance(item, dict) else item
+              try:
+                  with urllib.request.urlopen(url, timeout=15) as r:
+                      data = json.loads(r.read().decode("utf-8"))
+                  items = data.get("response", {}).get("body", {}).get("items", {})
+                  if not items: return []
+                  item = items.get("item", [])
+                  return [item] if isinstance(item, dict) else item
+              except Exception as e:
+                  print(f"  실패: {e}")
+                  return []
 
-          # 잠실장미, 잠실우성 → 송파구 11710
-          print("=== 송파구 202604 아파트명 (잠실 포함) ===")
-          items = fetch("11710", "202604")
-          names = sorted(set(i.get("aptNm","") for i in items if "잠실" in i.get("aptNm","")))
-          for n in names: print(f"  {n}")
+          # 잠실장미, 잠실우성 → 송파구 11710, 최근 3개월 조회
+          print("=== 송파구 잠실 관련 아파트명 전체 ===")
+          for ym in ["202605","202604","202603","202602"]:
+              items = fetch("11710", ym)
+              names = sorted(set(i.get("aptNm","") for i in items if "잠실" in i.get("aptNm","")))
+              if names:
+                  print(f"[{ym}] {names}")
 
-          # 서빙고 신동아 → 용산구 11140
-          print("\n=== 용산구 202604 아파트명 (서빙고/신동아 포함) ===")
-          items = fetch("11140", "202604")
-          names = sorted(set(i.get("aptNm","") for i in items if "서빙고" in i.get("aptNm","") or "신동아" in i.get("aptNm","")))
-          for n in names: print(f"  {n}")
+          print("\n=== 용산구 서빙고/신동아 관련 아파트명 전체 ===")
+          for ym in ["202605","202604","202603","202602"]:
+              items = fetch("11140", ym)
+              names = sorted(set(i.get("aptNm","") for i in items if "서빙고" in i.get("aptNm","") or "신동아" in i.get("aptNm","")))
+              if names:
+                  print(f"[{ym}] {names}")
 
-          # 성수동아 → 성동구 11200
-          print("\n=== 성동구 202604 아파트명 (성수/동아 포함) ===")
-          items = fetch("11200", "202604")
-          names = sorted(set(i.get("aptNm","") for i in items if "성수" in i.get("aptNm","") or "동아" in i.get("aptNm","")))
-          for n in names: print(f"  {n}")
-          EOF
+          print("\n=== 성동구 성수/동아 관련 아파트명 전체 ===")
+          for ym in ["202605","202604","202603","202602"]:
+              items = fetch("11200", ym)
+              names = sorted(set(i.get("aptNm","") for i in items if "성수" in i.get("aptNm","") or "동아" in i.get("aptNm","")))
+              if names:
+                  print(f"[{ym}] {names}")
+          PYEOF
+
       - name: 실거래가 업데이트 실행
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
