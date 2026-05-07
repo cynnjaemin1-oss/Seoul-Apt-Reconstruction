@@ -24,7 +24,7 @@ jobs:
       - name: 라이브러리 설치
         run: pip install requests python-dateutil
 
-- name: API 응답 진단
+      - name: API 응답 진단
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: |
