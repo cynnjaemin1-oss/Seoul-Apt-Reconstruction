@@ -1,6 +1,7 @@
 """
-서울 재건축 대시보드 - 실거래가 자동 업데이트 스크립트
-urllib 사용 (requests 인코딩 간섭 방지)
+서울 재건축 대시보드 - 실거래가 자동 업데이트
+국토교통부 아파트매매 실거래가 상세 자료 API (RTMSDataSvcAptTradeDev)
+필드명: aptNm, dealAmount, floor, excluUseAr, dealYear, dealMonth
 """
 
 import json
@@ -38,18 +39,18 @@ COMPLEX_SEARCH_NAMES = {
     "도곡우성":          ["도곡우성"],
 }
 
-def classify_floor(floor_str):
+def classify_floor(floor_val):
     try:
-        floor = int(str(floor_str).strip())
+        floor = int(floor_val)
         if floor >= 15: return "고층"
         if floor >= 8:  return "중층"
         return "저층"
     except:
         return "중층"
 
-def area_to_size_label(area_str):
+def area_to_size_label(area_val):
     try:
-        area = float(str(area_str).strip())
+        area = float(area_val)
         if area < 50:  return "42㎡"
         if area < 70:  return "59㎡"
         if area < 100: return "84㎡"
@@ -70,8 +71,7 @@ def fetch_transactions(district_code, yyyymm):
     full_url = f"{API_URL}?serviceKey={encoded_key}&{params}"
 
     try:
-        req = urllib.request.Request(full_url)
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(full_url, timeout=15) as resp:
             raw  = resp.read().decode("utf-8")
             data = json.loads(raw)
 
@@ -104,11 +104,13 @@ def get_recent_tx_for_complex(complex_name, district, n=TX_COUNT):
         time.sleep(0.3)
 
         for item in items:
-            apt_name = str(item.get("아파트", "")).strip()
+            # ✅ 핵심 수정: 영어 필드명 사용
+            apt_name = str(item.get("aptNm", "")).strip()
             if any(s in apt_name for s in search_names):
-                year  = str(item.get("년", "")).strip()
-                month = str(item.get("월", "")).strip().zfill(2)
-                price_raw = str(item.get("거래금액", "0")).replace(",", "").strip()
+                year  = str(item.get("dealYear",  "")).strip()
+                month = str(item.get("dealMonth", "")).strip().zfill(2)
+
+                price_raw = str(item.get("dealAmount", "0")).replace(",", "").strip()
                 try:
                     price_eok = round(int(price_raw) / 10000, 1)
                 except:
@@ -116,8 +118,8 @@ def get_recent_tx_for_complex(complex_name, district, n=TX_COUNT):
 
                 all_tx.append({
                     "date":      f"{year}.{month}",
-                    "size":      area_to_size_label(item.get("전용면적", "84")),
-                    "floor":     classify_floor(item.get("층", "10")),
+                    "size":      area_to_size_label(item.get("excluUseAr", 84)),
+                    "floor":     classify_floor(item.get("floor", 10)),
                     "price":     price_eok,
                     "_sort_key": f"{year}{month}",
                 })
@@ -157,7 +159,7 @@ def main():
             for tx in tx_list:
                 print(f"     {tx['date']} | {tx['size']} | {tx['floor']} | {tx['price']}억")
         else:
-            print(f"  ⚠️  실거래 데이터 없음 (기존 데이터 유지)")
+            print(f"  ⚠️  최근 {MONTHS_BACK}개월 실거래 없음 (기존 유지)")
 
     today = datetime.now().strftime("%Y.%m.%d")
     print(f"\n▶ 총 {updated_count}개 단지 업데이트 완료 ({today})")
