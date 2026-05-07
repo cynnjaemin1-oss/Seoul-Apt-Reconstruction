@@ -85,7 +85,7 @@
     "generalSaleRatio": 0.31,
     "note": "신속통합기획 확정(2024.08). 최고 49층 4,800세대. 잠실 한강변 마지막 재건축. 2호선 잠실역 도보권",
     "links": {
-      "naver": "https://land.naver.com/search/?query=잠실장미+송파구",
+      "naver": "https://land.naver.com/search/?query=%EC%9E%A1%EC%8B%A4%EC%9E%A5%EB%AF%B8",
       "hogangnono": "https://hogangnono.com/apt/1Xv7a",
       "asil": "https://asil.kr/"
     }
@@ -176,7 +176,7 @@
     "generalSaleRatio": 0.33,
     "note": "사업시행인가 추진 중. 시공사 삼성물산·GS건설 경합. 잠실역·신천역 더블역세권. 롯데타워 조망",
     "links": {
-      "naver": "https://land.naver.com/search/?query=잠실우성1차+송파구",
+      "naver": "https://land.naver.com/search/?query=%EC%9E%A1%EC%8B%A4%EC%9A%B0%EC%84%B11%EC%B0%A8",
       "hogangnono": "https://hogangnono.com/apt/1Xc62",
       "asil": "https://asil.kr/"
     }
@@ -227,22 +227,22 @@
     "listings": 78,
     "recentTx": [
       {
-        "date": "2026.04",
-        "size": "105㎡",
-        "floor": "중층",
-        "price": 29.6
+        "date": "2025.04",
+        "size": "84㎡",
+        "floor": "고층",
+        "price": 17
       },
       {
-        "date": "2026.04",
+        "date": "2025.03",
         "size": "126㎡",
         "floor": "중층",
-        "price": 41.7
+        "price": 23
       },
       {
-        "date": "2026.04",
-        "size": "126㎡",
+        "date": "2025.02",
+        "size": "84㎡",
         "floor": "저층",
-        "price": 37.0
+        "price": 14
       }
     ],
     "contribution": {
@@ -263,7 +263,7 @@
     "generalSaleRatio": 0.42,
     "note": "1988 서울올림픽 선수촌. 5,540세대 초대형. 안전진단 통과 후 정비구역 지정 추진 중. 몽촌토성역 인근",
     "links": {
-      "naver": "https://land.naver.com/search/?query=올림픽선수기자촌+송파구",
+      "naver": "https://land.naver.com/search/?query=%EC%98%AC%EB%A6%BC%ED%94%BD%EC%84%A0%EC%88%98%EA%B8%B0%EC%9E%90%EC%B4%8C",
       "hogangnono": "https://hogangnono.com/apt/21J8e",
       "asil": "https://asil.kr/"
     }
@@ -343,7 +343,7 @@
     "generalSaleRatio": 0.34,
     "note": "555세대 소형. 관리처분계획 총회 의결(2024.07). DL이앤씨 시공 '아크로잠실' 49층 추진. 송파구 재건축 최선행",
     "links": {
-      "naver": "https://land.naver.com/search/?query=잠실우성4차+송파구",
+      "naver": "https://land.naver.com/search/?query=%EC%9E%A1%EC%8B%A4%EC%9A%B0%EC%84%B14%EC%B0%A8",
       "hogangnono": "https://hogangnono.com/apt/1Xda4",
       "asil": "https://asil.kr/"
     }
@@ -434,7 +434,7 @@
     "generalSaleRatio": 0.52,
     "note": "성수전략정비구역. 정비계획 결정고시(2025.03). 최고 65층 한강변 초고층. 서울숲 인근. 10대 건설사 시공권 경쟁",
     "links": {
-      "naver": "https://land.naver.com/search/?query=성수동아+성동구",
+      "naver": "https://land.naver.com/search/?query=%EC%84%B1%EC%88%98%EB%8F%99%EC%95%84",
       "hogangnono": "https://hogangnono.com/region/1120011400/0/apt-list",
       "asil": "https://asil.kr/"
     }
@@ -489,22 +489,22 @@
     "listings": 28,
     "recentTx": [
       {
-        "date": "2026.04",
-        "size": "84㎡",
-        "floor": "저층",
-        "price": 37.5
-      },
-      {
-        "date": "2026.02",
+        "date": "2025.04",
         "size": "59㎡",
-        "floor": "중층",
-        "price": 31.2
+        "floor": "고층",
+        "price": 24
       },
       {
-        "date": "2026.01",
-        "size": "84㎡",
+        "date": "2025.03",
+        "size": "42㎡",
+        "floor": "중층",
+        "price": 17
+      },
+      {
+        "date": "2025.02",
+        "size": "59㎡",
         "floor": "저층",
-        "price": 36.0
+        "price": 20
       }
     ],
     "contribution": {
@@ -525,7 +525,7 @@
     "generalSaleRatio": 0.38,
     "note": "개포 재건축 마지막 대형구역. 1·2·3단지 완공 후 마지막 퍼즐. 6·7단지 통합 추진. 대청역 인근. 대모산 조망",
     "links": {
-      "naver": "https://land.naver.com/search/?query=개포주공6단지+강남구",
+      "naver": "https://land.naver.com/search/?query=%EA%B0%9C%ED%8F%AC%EC%A3%BC%EA%B3%B56%EB%8B%A8%EC%A7%80",
       "hogangnono": "https://hogangnono.com/apt/1Oubb",
       "asil": "https://asil.kr/"
     }
@@ -616,7 +616,7 @@
     "generalSaleRatio": 0.42,
     "note": "정비계획 결정(서울시 가결 2025.01). 최고 49층 1,903세대. 서빙고동·이촌동 한강변 핵심 입지. 용산공원 개발 수혜",
     "links": {
-      "naver": "https://land.naver.com/search/?query=서빙고신동아+용산구",
+      "naver": "https://land.naver.com/search/?query=%EC%84%9C%EB%B9%99%EA%B3%A0%EC%8B%A0%EB%8F%99%EC%95%84",
       "hogangnono": "https://hogangnono.com/apt/7F04",
       "asil": "https://asil.kr/"
     }
@@ -671,10 +671,22 @@
     "listings": 12,
     "recentTx": [
       {
-        "date": "2026.02",
+        "date": "2025.04",
         "size": "84㎡",
+        "floor": "고층",
+        "price": 26
+      },
+      {
+        "date": "2025.03",
+        "size": "105㎡",
         "floor": "중층",
-        "price": 27.5
+        "price": 32
+      },
+      {
+        "date": "2025.01",
+        "size": "84㎡",
+        "floor": "저층",
+        "price": 21
       }
     ],
     "contribution": {
@@ -695,7 +707,7 @@
     "generalSaleRatio": 0.41,
     "note": "390세대 소형단지. 조합설립인가(2025.03.31). 26층 548세대 재건축 예정. 도곡렉슬·타워팰리스 인접. 매봉역 도보",
     "links": {
-      "naver": "https://land.naver.com/search/?query=도곡우성+강남구",
+      "naver": "https://land.naver.com/search/?query=%EB%8F%84%EA%B3%A1%EC%9A%B0%EC%84%B1",
       "hogangnono": "https://hogangnono.com/apt/1WFe5",
       "asil": "https://asil.kr/"
     }
