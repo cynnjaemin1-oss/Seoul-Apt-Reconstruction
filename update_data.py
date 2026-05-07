@@ -1,21 +1,20 @@
 """
 서울 재건축 대시보드 - 실거래가 자동 업데이트 스크립트
-국토교통부 아파트매매 실거래가 API → data.json recentTx 자동 갱신
+urllib 사용 (requests 인코딩 간섭 방지)
 """
 
 import json
 import os
 import time
-import requests
+import urllib.request
+import urllib.parse
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-API_KEY   = os.environ.get("MOLIT_API_KEY", "")
-# ✅ 핵심 수정: serviceKey를 URL에 직접 붙여서 이중인코딩 방지
-from urllib.parse import quote
-API_BASE  = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev?serviceKey=" + quote(API_KEY, safe='')
-DATA_FILE = "data.json"
-TX_COUNT  = 3
+API_KEY     = os.environ.get("MOLIT_API_KEY", "")
+API_URL     = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
+DATA_FILE   = "data.json"
+TX_COUNT    = 3
 MONTHS_BACK = 6
 
 DISTRICT_CODES = {
@@ -51,27 +50,31 @@ def classify_floor(floor_str):
 def area_to_size_label(area_str):
     try:
         area = float(str(area_str).strip())
-        if area < 50:   return "42㎡"
-        if area < 70:   return "59㎡"
-        if area < 100:  return "84㎡"
-        if area < 120:  return "105㎡"
+        if area < 50:  return "42㎡"
+        if area < 70:  return "59㎡"
+        if area < 100: return "84㎡"
+        if area < 120: return "105㎡"
         return "126㎡"
     except:
         return "84㎡"
 
 def fetch_transactions(district_code, yyyymm):
-    # ✅ serviceKey는 URL에 이미 포함 → params에는 나머지만
-    params = {
-        "LAWD_CD":    district_code,
-        "DEAL_YMD":   yyyymm,
-        "numOfRows":  1000,
-        "pageNo":     1,
-        "_type":      "json",
-    }
+    encoded_key = urllib.parse.quote(API_KEY, safe='')
+    params = urllib.parse.urlencode({
+        "LAWD_CD":   district_code,
+        "DEAL_YMD":  yyyymm,
+        "numOfRows": 1000,
+        "pageNo":    1,
+        "_type":     "json",
+    })
+    full_url = f"{API_URL}?serviceKey={encoded_key}&{params}"
+
     try:
-        resp = requests.get(API_BASE, params=params, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
+        req = urllib.request.Request(full_url)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw  = resp.read().decode("utf-8")
+            data = json.loads(raw)
+
         items = data.get("response", {}).get("body", {}).get("items", {})
         if not items:
             return []
@@ -79,6 +82,7 @@ def fetch_transactions(district_code, yyyymm):
         if isinstance(item, dict):
             item = [item]
         return item
+
     except Exception as e:
         print(f"  ⚠️  API 호출 실패 ({district_code}, {yyyymm}): {e}")
         return []
@@ -91,13 +95,12 @@ def get_recent_tx_for_complex(complex_name, district, n=TX_COUNT):
 
     search_names = COMPLEX_SEARCH_NAMES.get(complex_name, [complex_name])
     all_tx = []
-
     now = datetime.now()
+
     for i in range(MONTHS_BACK):
         target = now - relativedelta(months=i)
         yyyymm = target.strftime("%Y%m")
-
-        items = fetch_transactions(district_code, yyyymm)
+        items  = fetch_transactions(district_code, yyyymm)
         time.sleep(0.3)
 
         for item in items:
@@ -134,7 +137,7 @@ def main():
         print("❌ MOLIT_API_KEY 환경변수가 없습니다.")
         return
 
-    print(f"▶ data.json 로드 중...")
+    print("▶ data.json 로드 중...")
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         complexes = json.load(f)
 
