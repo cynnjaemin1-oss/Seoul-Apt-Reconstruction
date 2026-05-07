@@ -24,13 +24,13 @@ jobs:
           python-version: '3.11'
 
       - name: 라이브러리 설치
-        run: pip install requests python-dateutil
+        run: pip install python-dateutil
 
-       - name: 아파트명 진단
+      - name: 아파트명 진단
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: |
-          python - <<'PYEOF'
+          python3 << 'PYEOF'
           import urllib.request, urllib.parse, json, os
 
           API_KEY = os.environ["MOLIT_API_KEY"]
@@ -63,17 +63,17 @@ jobs:
               items = fetch("11200", ym)
               for i in items:
                   if "신동아" in i.get("aptNm",""):
-                      print(f"  {ym} | {i.get('aptNm')} | {i.get('excluUseAr')}㎡ | {i.get('dealAmount')}만")
+                      print(f"  {ym} | {i.get('aptNm')} | {i.get('excluUseAr')}m2 | {i.get('dealAmount')}만")
           PYEOF
 
       - name: 실거래가 업데이트 실행
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
-        run: python update_data.py
+        run: python3 update_data.py
 
       - name: data.json 변경사항 커밋
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
           git diff --cached --quiet || git commit -m "auto: 실거래가 업데이트 $(date +'%Y-%m-%d')"
