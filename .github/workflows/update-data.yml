@@ -26,7 +26,7 @@ jobs:
       - name: 라이브러리 설치
         run: pip install requests python-dateutil
 
-      - name: 아파트명 진단
+       - name: 아파트명 진단
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: |
@@ -51,27 +51,19 @@ jobs:
                   print(f"  실패: {e}")
                   return []
 
-          # 잠실장미, 잠실우성 → 송파구 11710, 최근 3개월 조회
-          print("=== 송파구 잠실 관련 아파트명 전체 ===")
-          for ym in ["202605","202604","202603","202602"]:
+          print("=== 송파구 장미/우성 검색 ===")
+          for ym in ["202605","202604","202603","202602","202601","202512"]:
               items = fetch("11710", ym)
-              names = sorted(set(i.get("aptNm","") for i in items if "잠실" in i.get("aptNm","")))
+              names = sorted(set(i.get("aptNm","") for i in items if "장미" in i.get("aptNm","") or "우성" in i.get("aptNm","")))
               if names:
                   print(f"[{ym}] {names}")
 
-          print("\n=== 용산구 서빙고/신동아 관련 아파트명 전체 ===")
-          for ym in ["202605","202604","202603","202602"]:
-              items = fetch("11140", ym)
-              names = sorted(set(i.get("aptNm","") for i in items if "서빙고" in i.get("aptNm","") or "신동아" in i.get("aptNm","")))
-              if names:
-                  print(f"[{ym}] {names}")
-
-          print("\n=== 성동구 성수/동아 관련 아파트명 전체 ===")
-          for ym in ["202605","202604","202603","202602"]:
+          print("\n=== 성동구 신동아 상세 확인 ===")
+          for ym in ["202605","202604"]:
               items = fetch("11200", ym)
-              names = sorted(set(i.get("aptNm","") for i in items if "성수" in i.get("aptNm","") or "동아" in i.get("aptNm","")))
-              if names:
-                  print(f"[{ym}] {names}")
+              for i in items:
+                  if "신동아" in i.get("aptNm",""):
+                      print(f"  {ym} | {i.get('aptNm')} | {i.get('excluUseAr')}㎡ | {i.get('dealAmount')}만")
           PYEOF
 
       - name: 실거래가 업데이트 실행
