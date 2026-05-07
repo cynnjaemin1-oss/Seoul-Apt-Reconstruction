@@ -211,38 +211,38 @@
       {
         "size": "84㎡",
         "pyeong": 25,
-        "low": 20.0,
-        "mid": 27.9,
-        "high": 32.0
+        "low": 12,
+        "mid": 16,
+        "high": 20
       },
       {
         "size": "126㎡",
         "pyeong": 38,
-        "low": 24.3,
-        "mid": 37.5,
-        "high": 48.0
+        "low": 17,
+        "mid": 22,
+        "high": 27
       }
     ],
-    "priceLastUpdated": "2026.05",
+    "priceLastUpdated": "2025.05",
     "listings": 78,
     "recentTx": [
       {
-        "date": "2026.04",
-        "size": "105㎡",
-        "floor": "중층",
-        "price": 29.6
+        "date": "2025.04",
+        "size": "84㎡",
+        "floor": "고층",
+        "price": 17
       },
       {
-        "date": "2026.04",
+        "date": "2025.03",
         "size": "126㎡",
         "floor": "중층",
-        "price": 41.7
+        "price": 23
       },
       {
-        "date": "2026.04",
-        "size": "126㎡",
+        "date": "2025.02",
+        "size": "84㎡",
         "floor": "저층",
-        "price": 37.0
+        "price": 14
       }
     ],
     "contribution": {
@@ -265,86 +265,6 @@
     "links": {
       "naver": "https://land.naver.com/search/?query=%EC%98%AC%EB%A6%BC%ED%94%BD%EC%84%A0%EC%88%98%EA%B8%B0%EC%9E%90%EC%B4%8C",
       "hogangnono": "https://hogangnono.com/apt/21J8e",
-      "asil": "https://asil.kr/"
-    }
-  },
-  {
-    "id": 4,
-    "name": "잠실우성4차",
-    "district": "송파구",
-    "dong": "잠실동",
-    "totalUnits": 555,
-    "newUnits": 825,
-    "buildYear": 1986,
-    "representativeArea": "84㎡",
-    "stage": 3,
-    "stageStatus": "in_progress",
-    "stageDate": "2024.07",
-    "milestones": [
-      {
-        "stage": 3,
-        "estimated": "2025 상반기"
-      },
-      {
-        "stage": 4,
-        "estimated": "2025 하반기"
-      },
-      {
-        "stage": 5,
-        "estimated": "2026 상반기"
-      },
-      {
-        "stage": 6,
-        "estimated": "2028~2029"
-      }
-    ],
-    "priceBySize": [
-      {
-        "size": "84㎡",
-        "pyeong": 25,
-        "low": 17,
-        "mid": 21,
-        "high": 26
-      }
-    ],
-    "priceLastUpdated": "2025.05",
-    "listings": 9,
-    "recentTx": [
-      {
-        "date": "2025.04",
-        "size": "84㎡",
-        "floor": "고층",
-        "price": 22
-      },
-      {
-        "date": "2025.02",
-        "size": "84㎡",
-        "floor": "중층",
-        "price": 20
-      },
-      {
-        "date": "2024.12",
-        "size": "84㎡",
-        "floor": "저층",
-        "price": 17
-      }
-    ],
-    "contribution": {
-      "low": 4,
-      "high": 6,
-      "note": "DL이앤씨 시공. 49층 '아크로잠실' 추진. 관리처분인가 후 확정"
-    },
-    "allocation": [
-      {
-        "buySize": "84㎡",
-        "allocRange": "84~101㎡"
-      }
-    ],
-    "generalSaleRatio": 0.34,
-    "note": "555세대 소형. 관리처분계획 총회 의결(2024.07). DL이앤씨 시공 '아크로잠실' 49층 추진. 송파구 재건축 최선행",
-    "links": {
-      "naver": "https://land.naver.com/search/?query=%EC%9E%A1%EC%8B%A4%EC%9A%B0%EC%84%B14%EC%B0%A8",
-      "hogangnono": "https://hogangnono.com/apt/1Xda4",
       "asil": "https://asil.kr/"
     }
   },
@@ -480,31 +400,31 @@
       {
         "size": "59㎡",
         "pyeong": 18,
-        "low": 27.0,
-        "mid": 31.5,
-        "high": 34.2
+        "low": 18,
+        "mid": 23,
+        "high": 28
       }
     ],
-    "priceLastUpdated": "2026.05",
+    "priceLastUpdated": "2025.05",
     "listings": 28,
     "recentTx": [
       {
-        "date": "2026.04",
-        "size": "84㎡",
-        "floor": "저층",
-        "price": 37.5
-      },
-      {
-        "date": "2026.02",
+        "date": "2025.04",
         "size": "59㎡",
-        "floor": "중층",
-        "price": 31.2
+        "floor": "고층",
+        "price": 24
       },
       {
-        "date": "2026.01",
-        "size": "84㎡",
+        "date": "2025.03",
+        "size": "42㎡",
+        "floor": "중층",
+        "price": 17
+      },
+      {
+        "date": "2025.02",
+        "size": "59㎡",
         "floor": "저층",
-        "price": 36.0
+        "price": 20
       }
     ],
     "contribution": {
@@ -656,7 +576,7 @@
         "size": "84㎡",
         "pyeong": 25,
         "low": 19,
-        "mid": 27.5,
+        "mid": 25,
         "high": 32
       },
       {
@@ -667,14 +587,26 @@
         "high": 40
       }
     ],
-    "priceLastUpdated": "2026.05",
+    "priceLastUpdated": "2025.05",
     "listings": 12,
     "recentTx": [
       {
-        "date": "2026.02",
+        "date": "2025.04",
         "size": "84㎡",
+        "floor": "고층",
+        "price": 26
+      },
+      {
+        "date": "2025.03",
+        "size": "105㎡",
         "floor": "중층",
-        "price": 27.5
+        "price": 32
+      },
+      {
+        "date": "2025.01",
+        "size": "84㎡",
+        "floor": "저층",
+        "price": 21
       }
     ],
     "contribution": {
