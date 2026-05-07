@@ -5,7 +5,6 @@ on:
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
-# ✅ 핵심 수정: 레포 쓰기 권한 추가
 permissions:
   contents: write
 
@@ -24,6 +23,21 @@ jobs:
 
       - name: 라이브러리 설치
         run: pip install requests python-dateutil
+
+      - name: API 응답 진단
+        env:
+          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
+        run: |
+          python - <<'EOF'
+          import requests, os
+          key = os.environ["MOLIT_API_KEY"]
+          print(f"키 길이: {len(key)}자")
+          print(f"키 앞 4자리: {key[:4]}")
+          url = f"http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDevDev/getRTMSDataSvcAptTradeDev?serviceKey={key}&LAWD_CD=11710&DEAL_YMD=202604&numOfRows=5&pageNo=1&_type=json"
+          resp = requests.get(url, timeout=15)
+          print(f"HTTP 상태코드: {resp.status_code}")
+          print(f"응답 내용:\n{resp.text[:500]}")
+          EOF
 
       - name: 실거래가 업데이트 실행
         env:
