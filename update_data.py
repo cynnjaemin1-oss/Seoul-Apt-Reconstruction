@@ -26,15 +26,15 @@ DISTRICT_CODES = {
     "노원구": "11350",
 }
 
-# ✅ 검색 키워드를 넓게 잡아서 API 표기 차이 흡수
+# ✅ 진단 결과 반영한 실제 API 아파트명
 COMPLEX_SEARCH_NAMES = {
-    "잠실장미":          ["잠실장미"],
-    "잠실우성1·2·3차":   ["잠실우성"],        # 1차/2차/3차 한번에 잡음
-    "올림픽선수기자촌":  ["올림픽선수", "선수기자촌"],
-    "성수동아":          ["성수동아"],
-    "개포주공6·7단지":   ["개포주공6", "개포주공7"],
-    "서빙고 신동아":     ["서빙고신동아", "신동아"],  # 표기 두 가지 대응
-    "도곡우성":          ["도곡우성"],
+    "잠실장미":          {"include": ["장미1", "장미2"],       "exclude": []},
+    "잠실우성1·2·3차":   {"include": ["우성아파트"],            "exclude": ["우성4차", "가락우성", "도곡우성"]},
+    "올림픽선수기자촌":  {"include": ["올림픽선수"],            "exclude": []},
+    "성수동아":          {"include": ["신동아"],                "exclude": []},  # 성동구 신동아 = 성수동아
+    "개포주공6·7단지":   {"include": ["개포주공6", "개포주공7"],"exclude": []},
+    "서빙고 신동아":     {"include": ["서빙고신동아"],          "exclude": []},
+    "도곡우성":          {"include": ["도곡우성"],              "exclude": []},
 }
 
 def classify_floor(floor_val):
@@ -86,9 +86,12 @@ def get_all_tx_for_complex(complex_name, district):
     if not district_code:
         return []
 
-    search_names = COMPLEX_SEARCH_NAMES.get(complex_name, [complex_name])
+    rule         = COMPLEX_SEARCH_NAMES.get(complex_name, {"include": [complex_name], "exclude": []})
+    include_kw   = rule["include"]
+    exclude_kw   = rule["exclude"]
+
     all_tx = []
-    found_apt_names = set()  # 디버깅: 실제 매칭된 아파트명 수집
+    found_apt_names = set()
     now = datetime.now()
 
     for i in range(MONTHS_BACK):
@@ -99,23 +102,28 @@ def get_all_tx_for_complex(complex_name, district):
 
         for item in items:
             apt_name = str(item.get("aptNm", "")).strip()
-            if any(s in apt_name for s in search_names):
-                found_apt_names.add(apt_name)
-                year  = str(item.get("dealYear",  "")).strip()
-                month = str(item.get("dealMonth", "")).strip().zfill(2)
-                price_raw = str(item.get("dealAmount", "0")).replace(",", "").strip()
-                try:
-                    price_eok = round(int(price_raw) / 10000, 1)
-                except:
-                    continue
+            # include 키워드 중 하나라도 포함 AND exclude 키워드는 하나도 없어야 함
+            if not any(k in apt_name for k in include_kw):
+                continue
+            if any(k in apt_name for k in exclude_kw):
+                continue
 
-                all_tx.append({
-                    "date":      f"{year}.{month}",
-                    "size":      area_to_size_label(item.get("excluUseAr", 84)),
-                    "floor":     classify_floor(item.get("floor", 10)),
-                    "price":     price_eok,
-                    "_sort_key": f"{year}{month}",
-                })
+            found_apt_names.add(apt_name)
+            year  = str(item.get("dealYear",  "")).strip()
+            month = str(item.get("dealMonth", "")).strip().zfill(2)
+            price_raw = str(item.get("dealAmount", "0")).replace(",", "").strip()
+            try:
+                price_eok = round(int(price_raw) / 10000, 1)
+            except:
+                continue
+
+            all_tx.append({
+                "date":      f"{year}.{month}",
+                "size":      area_to_size_label(item.get("excluUseAr", 84)),
+                "floor":     classify_floor(item.get("floor", 10)),
+                "price":     price_eok,
+                "_sort_key": f"{year}{month}",
+            })
 
     if found_apt_names:
         print(f"  📌 매칭된 아파트명: {', '.join(sorted(found_apt_names))}")
@@ -134,11 +142,10 @@ def compute_price_by_size(all_tx, existing_price_by_size):
     for entry in existing_price_by_size:
         size   = entry["size"]
         prices = size_prices.get(size, [])
-
         if len(prices) >= 2:
-            prices_sorted = sorted(prices)
-            low  = round(prices_sorted[0], 1)
-            high = round(prices_sorted[-1], 1)
+            ps   = sorted(prices)
+            low  = round(ps[0], 1)
+            high = round(ps[-1], 1)
             mid  = round(sum(prices) / len(prices), 1)
             updated.append({**entry, "low": low, "mid": mid, "high": high})
             print(f"     {size}: {low}~{mid}~{high}억 ({len(prices)}건)")
@@ -149,7 +156,6 @@ def compute_price_by_size(all_tx, existing_price_by_size):
         else:
             updated.append(entry)
             print(f"     {size}: 실거래 없음 → 기존 유지")
-
     return updated
 
 def main():
