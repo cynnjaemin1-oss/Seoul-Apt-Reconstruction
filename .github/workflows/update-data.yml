@@ -48,7 +48,7 @@ jobs:
                   item = items.get("item", [])
                   return [item] if isinstance(item, dict) else item
               except Exception as e:
-                  print(f"  실패: {e}")
+                  print(f"실패: {e}")
                   return []
 
           print("=== 송파구 장미/우성 검색 ===")
@@ -58,12 +58,15 @@ jobs:
               if names:
                   print(f"[{ym}] {names}")
 
-          print("\n=== 성동구 신동아 상세 확인 ===")
-          for ym in ["202605","202604"]:
+          print("=== 성동구 동아 관련 전체 목록 ===")
+          for ym in ["202604","202603","202602","202601","202512"]:
               items = fetch("11200", ym)
-              for i in items:
-                  if "신동아" in i.get("aptNm",""):
-                      print(f"  {ym} | {i.get('aptNm')} | {i.get('excluUseAr')}m2 | {i.get('dealAmount')}만")
+              matches = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"), i.get("jibun")) 
+                         for i in items if "동아" in i.get("aptNm","")]
+              if matches:
+                  print(f"\n[{ym}]")
+                  for m in sorted(set(matches)):
+                      print(f"  aptNm={m[0]} | 면적={m[1]} | 가격={m[2]} | 지번={m[3]}")
           PYEOF
 
       - name: 실거래가 업데이트 실행
