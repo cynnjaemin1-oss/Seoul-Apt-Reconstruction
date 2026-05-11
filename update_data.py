@@ -131,28 +131,21 @@ def get_all_tx_for_complex(complex_name, district):
     return all_tx
 
 def compute_price_by_size(all_tx, existing_price_by_size):
-    size_prices = {}
-    for tx in all_tx:
+    # 평형별로 가장 최근 거래 1건만 추출
+    size_latest = {}
+    for tx in sorted(all_tx, key=lambda x: x["_sort_key"], reverse=True):
         s = tx["size"]
-        if s not in size_prices:
-            size_prices[s] = []
-        size_prices[s].append(tx["price"])
+        if s not in size_latest:
+            size_latest[s] = tx  # 최신순 정렬이므로 첫 번째가 최근 거래
 
     updated = []
     for entry in existing_price_by_size:
         size   = entry["size"]
-        prices = size_prices.get(size, [])
-        if len(prices) >= 2:
-            ps   = sorted(prices)
-            low  = round(ps[0], 1)
-            high = round(ps[-1], 1)
-            mid  = round(sum(prices) / len(prices), 1)
-            updated.append({**entry, "low": low, "mid": mid, "high": high})
-            print(f"     {size}: {low}~{mid}~{high}억 ({len(prices)}건)")
-        elif len(prices) == 1:
-            mid = prices[0]
-            updated.append({**entry, "mid": mid})
-            print(f"     {size}: 1건 → mid {mid}억")
+        latest = size_latest.get(size)
+        if latest:
+            mid = latest["price"]
+            updated.append({**entry, "mid": mid, "low": mid, "high": mid})
+            print(f"     {size}: 최근거래 {mid}억 ({latest['date']})")
         else:
             updated.append(entry)
             print(f"     {size}: 실거래 없음 → 기존 유지")
