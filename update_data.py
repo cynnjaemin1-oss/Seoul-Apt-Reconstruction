@@ -1,5 +1,6 @@
 """
 서울 재건축 대시보드 - 실거래가 + 시세 자동 업데이트
+구조: {"complexes": [...], "myHome": {...}}
 """
 
 import json
@@ -26,15 +27,14 @@ DISTRICT_CODES = {
     "노원구": "11350",
 }
 
-# ✅ 진단 결과 반영한 실제 API 아파트명
 COMPLEX_SEARCH_NAMES = {
-    "잠실장미":          {"include": ["장미1", "장미2"],       "exclude": []},
-    "잠실우성1·2·3차":   {"include": ["우성아파트"],            "exclude": ["우성4차", "가락우성", "도곡우성"]},
-    "올림픽선수기자촌":  {"include": ["올림픽선수"],            "exclude": []},
-   "성수동아":          {"include": ["동아"],                  "exclude": ["동아그린", "서울숲리버그린동아", "신동아"]},
-    "개포주공6·7단지":   {"include": ["개포주공6", "개포주공7"],"exclude": []},
-    "서빙고 신동아":     {"include": ["서빙고신동아"],          "exclude": []},
-    "도곡우성":          {"include": ["도곡우성"],              "exclude": []},
+    "잠실장미":          {"include": ["장미1", "장미2"],                      "exclude": []},
+    "잠실우성1·2·3차":   {"include": ["우성아파트"],                           "exclude": ["우성4차", "가락우성", "도곡우성"]},
+    "올림픽선수기자촌":  {"include": ["올림픽선수"],                           "exclude": []},
+    "성수동아":          {"include": ["동아"],                                 "exclude": ["동아그린", "서울숲리버그린동아", "신동아"]},
+    "개포주공6·7단지":   {"include": ["개포주공6", "개포주공7"],               "exclude": []},
+    "서빙고 신동아":     {"include": ["서빙고신동아"],                         "exclude": []},
+    "도곡우성":          {"include": ["도곡우성"],                             "exclude": []},
 }
 
 def classify_floor(floor_val):
@@ -86,9 +86,9 @@ def get_all_tx_for_complex(complex_name, district):
     if not district_code:
         return []
 
-    rule         = COMPLEX_SEARCH_NAMES.get(complex_name, {"include": [complex_name], "exclude": []})
-    include_kw   = rule["include"]
-    exclude_kw   = rule["exclude"]
+    rule       = COMPLEX_SEARCH_NAMES.get(complex_name, {"include": [complex_name], "exclude": []})
+    include_kw = rule["include"]
+    exclude_kw = rule["exclude"]
 
     all_tx = []
     found_apt_names = set()
@@ -102,7 +102,6 @@ def get_all_tx_for_complex(complex_name, district):
 
         for item in items:
             apt_name = str(item.get("aptNm", "")).strip()
-            # include 키워드 중 하나라도 포함 AND exclude 키워드는 하나도 없어야 함
             if not any(k in apt_name for k in include_kw):
                 continue
             if any(k in apt_name for k in exclude_kw):
@@ -131,12 +130,12 @@ def get_all_tx_for_complex(complex_name, district):
     return all_tx
 
 def compute_price_by_size(all_tx, existing_price_by_size):
-    # 평형별로 가장 최근 거래 1건만 추출
+    """평형별 가장 최근 거래 1건으로 mid 업데이트"""
     size_latest = {}
     for tx in sorted(all_tx, key=lambda x: x["_sort_key"], reverse=True):
         s = tx["size"]
         if s not in size_latest:
-            size_latest[s] = tx  # 최신순 정렬이므로 첫 번째가 최근 거래
+            size_latest[s] = tx
 
     updated = []
     for entry in existing_price_by_size:
@@ -151,6 +150,55 @@ def compute_price_by_size(all_tx, existing_price_by_size):
             print(f"     {size}: 실거래 없음 → 기존 유지")
     return updated
 
+def update_my_home(my_home):
+    """금호파크힐스 최근 실거래가 업데이트"""
+    district_code = DISTRICT_CODES.get(my_home["district"])
+    search_name   = my_home["searchName"]
+    target_area   = my_home["targetArea"]  # 59 (전용 59㎡ = 25평형)
+
+    print(f"\n[{my_home['name']}] ({my_home['district']}) 조회 중...")
+
+    now = datetime.now()
+    for i in range(MONTHS_BACK):
+        target = now - relativedelta(months=i)
+        yyyymm = target.strftime("%Y%m")
+        items  = fetch_transactions(district_code, yyyymm)
+        time.sleep(0.3)
+
+        matches = []
+        for item in items:
+            apt_name = str(item.get("aptNm", "")).strip()
+            if search_name not in apt_name:
+                continue
+            area = float(item.get("excluUseAr", 0))
+            # 전용 55~75㎡ 범위 = 25평형
+            if not (55 <= area <= 75):
+                continue
+            price_raw = str(item.get("dealAmount", "0")).replace(",", "").strip()
+            try:
+                price_eok = round(int(price_raw) / 10000, 1)
+            except:
+                continue
+            year  = str(item.get("dealYear",  "")).strip()
+            month = str(item.get("dealMonth", "")).strip().zfill(2)
+            matches.append({
+                "price":    price_eok,
+                "date":     f"{year}.{month}",
+                "sortkey":  f"{year}{month}",
+                "aptNm":    apt_name,
+                "area":     area,
+            })
+
+        if matches:
+            latest = sorted(matches, key=lambda x: x["sortkey"], reverse=True)[0]
+            my_home["latestPrice"] = latest["price"]
+            my_home["latestDate"]  = latest["date"]
+            print(f"  ✅ {latest['aptNm']} | 전용 {latest['area']}㎡ | {latest['price']}억 ({latest['date']})")
+            return my_home
+
+    print(f"  ⚠️  최근 {MONTHS_BACK}개월 실거래 없음 (기존 유지)")
+    return my_home
+
 def main():
     if not API_KEY:
         print("❌ MOLIT_API_KEY 환경변수가 없습니다.")
@@ -158,11 +206,15 @@ def main():
 
     print("▶ data.json 로드 중...")
     with open(DATA_FILE, "r", encoding="utf-8") as f:
-        complexes = json.load(f)
+        data = json.load(f)
+
+    complexes = data["complexes"]
+    my_home   = data["myHome"]
 
     today = datetime.now().strftime("%Y.%m")
     updated_count = 0
 
+    # 재건축 단지 업데이트
     for c in complexes:
         name     = c["name"]
         district = c["district"]
@@ -180,15 +232,18 @@ def main():
             for tx in sorted_tx[:TX_COUNT]
         ]
 
-        print(f"  📊 시세 계산 ({len(all_tx)}건 기반):")
+        print(f"  📊 시세 계산:")
         c["priceBySize"]      = compute_price_by_size(all_tx, c["priceBySize"])
         c["priceLastUpdated"] = today
         updated_count += 1
         print(f"  ✅ 업데이트 완료")
 
-    print(f"\n▶ 총 {updated_count}개 단지 업데이트 완료 ({datetime.now().strftime('%Y.%m.%d')})")
+    # 내 집 업데이트
+    data["myHome"] = update_my_home(my_home)
+
+    print(f"\n▶ 총 {updated_count}개 단지 + 내 집 업데이트 완료 ({datetime.now().strftime('%Y.%m.%d')})")
     with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(complexes, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)
     print("▶ data.json 저장 완료")
 
 if __name__ == "__main__":
