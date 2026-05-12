@@ -178,10 +178,10 @@ def update_my_home(mh):
             if sn not in str(item.get("aptNm","")): continue
             area = float(item.get("excluUseAr", 0) or 0)
             if not (55 <= area <= 75): continue
-            try: p = round(int(str(item.get("dealAmount","0")).replace(",","")) / 10000, 1)
-            except: continue
-                try: p = round(int(str(item.get("dealAmount","0")).replace(",","")), 0)/10000
-                except: continue
+            try:
+                p = round(int(str(item.get("dealAmount","0")).replace(",","")) / 10000, 1)
+            except:
+                continue
             year  = str(item.get("dealYear","")).strip()
             month = str(item.get("dealMonth","")).strip().zfill(2)
             matches.append({"price":p,"date":f"{year}.{month}","sortkey":f"{year}{month}"})
