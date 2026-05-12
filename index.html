@@ -934,8 +934,8 @@ function CompareView({ complexes, regularComplexes, myHome, gapSettings }) {
                 )}
                 {!isRecon && c && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">전세가 (매수 후 임대)</span>
-                    <span className="font-semibold text-teal-600">{c.jeonsePrice}억</span>
+                    <span className="text-gray-500">전세가</span>
+                    <span className="font-semibold text-gray-400 line-through">{c.jeonsePrice}억 <span className="text-[10px] text-red-400 no-underline">(토허제 실거주 의무)</span></span>
                   </div>
                 )}
                 <div className="border-t border-gray-100 pt-2 flex justify-between">
@@ -950,13 +950,17 @@ function CompareView({ complexes, regularComplexes, myHome, gapSettings }) {
 
       {/* 결론 */}
       {rg && gg && (
-        <div className="bg-blue-50 rounded-2xl p-4">
-          <div className="text-xs font-bold text-blue-700 mb-2">📊 {scenLabel[scenario]} 기준 비교 결론</div>
+        <div className="bg-blue-50 rounded-2xl p-4 space-y-2">
+          <div className="text-xs font-bold text-blue-700">📊 {scenLabel[scenario]} 기준 비교 결론</div>
           <div className="text-sm text-blue-800">
             {recon?.name} vs {reg?.name} —&nbsp;
-            {Math.abs(rg.tot - gg.tot).toFixed(1)}억 차이&nbsp;
-            <span className="font-bold">{rg.tot < gg.tot ? `${recon?.name}이 더 유리` : `${reg?.name}이 더 유리`}</span>
-            {recon && <span className="text-[11px] text-blue-600 block mt-1">※ 재건축은 분담금 {recon.contribution.low}~{recon.contribution.high}억이 추후 추가됨</span>}
+            <span className="font-bold">{Math.abs(rg.tot - gg.tot).toFixed(1)}억 차이</span>&nbsp;·&nbsp;
+            <span className="font-bold">{rg.tot < gg.tot ? `${recon?.name}이 갭 유리` : `${reg?.name}이 갭 유리`}</span>
+          </div>
+          {recon && <div className="text-[11px] text-blue-600">※ 재건축은 분담금 {recon.contribution.low}~{recon.contribution.high}억이 입주 시점에 추가 납부</div>}
+          <div className="bg-red-50 rounded-xl px-3 py-2 text-[11px] text-red-600 flex items-start gap-1.5">
+            <span>⚠️</span>
+            <span>서울 전역 토지거래허가구역 적용 중 — 재건축·일반매물 모두 <strong>실거주 의무</strong>. 전세 끼고 매수 불가. 갭 전액 현금 조달 기준으로 판단하세요.</span>
           </div>
         </div>
       )}
