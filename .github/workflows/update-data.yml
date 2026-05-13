@@ -26,47 +26,70 @@ jobs:
       - name: 라이브러리 설치
         run: pip install python-dateutil
 
-      - name: 아파트명 진단
+      - name: 단지별 aptSeq(네이버ID) 확인
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: |
           python3 << 'PYEOF'
-          import urllib.request, urllib.parse, json, os
+          import urllib.request, urllib.parse, json, os, time
 
           API_KEY = os.environ["MOLIT_API_KEY"]
           API_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
 
-          def fetch(district_code, yyyymm):
-              encoded_key = urllib.parse.quote(API_KEY, safe='')
-              params = urllib.parse.urlencode({"LAWD_CD": district_code, "DEAL_YMD": yyyymm, "numOfRows": 1000, "pageNo": 1, "_type": "json"})
-              url = f"{API_URL}?serviceKey={encoded_key}&{params}"
+          def fetch(dc, ym):
+              key = urllib.parse.quote(API_KEY, safe='')
+              p = urllib.parse.urlencode({"LAWD_CD":dc,"DEAL_YMD":ym,"numOfRows":1000,"pageNo":1,"_type":"json"})
               try:
-                  with urllib.request.urlopen(url, timeout=15) as r:
-                      data = json.loads(r.read().decode("utf-8"))
-                  items = data.get("response", {}).get("body", {}).get("items", {})
+                  with urllib.request.urlopen(f"{API_URL}?serviceKey={key}&{p}", timeout=15) as r:
+                      d = json.loads(r.read().decode("utf-8"))
+                  items = d.get("response",{}).get("body",{}).get("items",{})
                   if not items: return []
-                  item = items.get("item", [])
+                  item = items.get("item",[])
                   return [item] if isinstance(item, dict) else item
-              except Exception as e:
-                  print(f"실패: {e}")
-                  return []
+              except: return []
 
-          print("=== 송파구 장미/우성 검색 ===")
-          for ym in ["202605","202604","202603","202602","202601","202512"]:
-              items = fetch("11710", ym)
-              names = sorted(set(i.get("aptNm","") for i in items if "장미" in i.get("aptNm","") or "우성" in i.get("aptNm","")))
-              if names:
-                  print(f"[{ym}] {names}")
+          TARGETS = [
+              # (표시명, 구코드, 검색키워드, 제외키워드)
+              ("잠실장미",        "11710", ["장미1","장미2"],          []),
+              ("잠실우성1·2·3차", "11710", ["우성아파트"],             ["우성4차","가락우성","도곡우성"]),
+              ("올림픽선수기자촌","11710", ["올림픽선수"],             []),
+              ("성수동아",        "11200", ["동아"],                   ["동아그린","서울숲리버그린동아","신동아"]),
+              ("개포주공6·7단지", "11680", ["개포주공6","개포주공7"], []),
+              ("서빙고 신동아",   "11140", ["서빙고신동아"],           []),
+              ("도곡우성",        "11680", ["도곡우성"],               []),
+              ("서초진흥",        "11650", ["서초진흥"],               []),
+              ("올림픽훼미리타운","11710", ["훼미리타운","훼밀리타운"],[]),
+              ("개포우성7차",     "11680", ["우성7차"],                []),
+              ("원효산호",        "11140", ["산호"],                   []),
+              ("잠실엘스",        "11710", ["잠실엘스"],               []),
+              ("리센츠",          "11710", ["리센츠"],                 []),
+              ("트리지움",        "11710", ["트리지움"],               []),
+              ("레이크팰리스",    "11710", ["레이크팰리스"],           []),
+              ("도곡렉슬",        "11680", ["도곡렉슬"],               []),
+              ("역삼럭키",        "11680", ["역삼럭키"],               []),
+              ("이촌한가람",      "11140", ["한가람"],                 []),
+              ("디에이치방배",    "11650", ["디에이치방배"],           []),
+              ("개포자이프레지던스","11680",["개포자이프레지던스"],    []),
+          ]
 
-          print("=== 성동구 동아 관련 전체 목록 ===")
-          for ym in ["202604","202603","202602","202601","202512"]:
-              items = fetch("11200", ym)
-              matches = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"), i.get("jibun")) 
-                         for i in items if "동아" in i.get("aptNm","")]
-              if matches:
-                  print(f"\n[{ym}]")
-                  for m in sorted(set(matches)):
-                      print(f"  aptNm={m[0]} | 면적={m[1]} | 가격={m[2]} | 지번={m[3]}")
+          for months in [["202605","202604","202603","202602","202601","202512"]]:
+              for name, dc, inc, exc in TARGETS:
+                  found_id = None
+                  found_name = None
+                  for ym in months:
+                      items = fetch(dc, ym)
+                      time.sleep(0.2)
+                      for item in items:
+                          apt = str(item.get("aptNm","")).strip()
+                          if not any(k in apt for k in inc): continue
+                          if any(k in apt for k in exc): continue
+                          seq = str(item.get("aptSeq","")).strip()
+                          if "-" in seq:
+                              found_id = seq.split("-")[-1]
+                              found_name = apt
+                              break
+                      if found_id: break
+                  print(f"{name}: aptSeq={found_id} ({found_name}) → https://new.land.naver.com/complexes/{found_id}")
           PYEOF
 
       - name: 실거래가 업데이트 실행
