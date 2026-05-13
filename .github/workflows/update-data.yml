@@ -24,72 +24,119 @@ jobs:
           python-version: '3.11'
 
       - name: 라이브러리 설치
-        run: pip install python-dateutil
+        run: pip install python-dateutil requests
 
-      - name: 단지별 aptSeq(네이버ID) 확인
-        env:
-          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
+      - name: 네이버 단지 ID 자동 조회 및 data.json 업데이트
         run: |
           python3 << 'PYEOF'
-          import urllib.request, urllib.parse, json, os, time
+          import urllib.request, urllib.parse, json, time, re
 
-          API_KEY = os.environ["MOLIT_API_KEY"]
-          API_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
-
-          def fetch(dc, ym):
-              key = urllib.parse.quote(API_KEY, safe='')
-              p = urllib.parse.urlencode({"LAWD_CD":dc,"DEAL_YMD":ym,"numOfRows":1000,"pageNo":1,"_type":"json"})
-              try:
-                  with urllib.request.urlopen(f"{API_URL}?serviceKey={key}&{p}", timeout=15) as r:
-                      d = json.loads(r.read().decode("utf-8"))
-                  items = d.get("response",{}).get("body",{}).get("items",{})
-                  if not items: return []
-                  item = items.get("item",[])
-                  return [item] if isinstance(item, dict) else item
-              except: return []
-
+          # 단지명 → 네이버 검색 쿼리 매핑
           TARGETS = [
-              # (표시명, 구코드, 검색키워드, 제외키워드)
-              ("잠실장미",        "11710", ["장미1","장미2"],          []),
-              ("잠실우성1·2·3차", "11710", ["우성아파트"],             ["우성4차","가락우성","도곡우성"]),
-              ("올림픽선수기자촌","11710", ["올림픽선수"],             []),
-              ("성수동아",        "11200", ["동아"],                   ["동아그린","서울숲리버그린동아","신동아"]),
-              ("개포주공6·7단지", "11680", ["개포주공6","개포주공7"], []),
-              ("서빙고 신동아",   "11140", ["서빙고신동아"],           []),
-              ("도곡우성",        "11680", ["도곡우성"],               []),
-              ("서초진흥",        "11650", ["서초진흥"],               []),
-              ("올림픽훼미리타운","11710", ["훼미리타운","훼밀리타운"],[]),
-              ("개포우성7차",     "11680", ["우성7차"],                []),
-              ("원효산호",        "11140", ["산호"],                   []),
-              ("잠실엘스",        "11710", ["잠실엘스"],               []),
-              ("리센츠",          "11710", ["리센츠"],                 []),
-              ("트리지움",        "11710", ["트리지움"],               []),
-              ("레이크팰리스",    "11710", ["레이크팰리스"],           []),
-              ("도곡렉슬",        "11680", ["도곡렉슬"],               []),
-              ("역삼럭키",        "11680", ["역삼럭키"],               []),
-              ("이촌한가람",      "11140", ["한가람"],                 []),
-              ("디에이치방배",    "11650", ["디에이치방배"],           []),
-              ("개포자이프레지던스","11680",["개포자이프레지던스"],    []),
+              ("잠실장미",          "잠실장미아파트"),
+              ("잠실우성1·2·3차",   "잠실우성아파트 잠실동"),
+              ("올림픽선수기자촌",   "올림픽선수기자촌"),
+              ("성수동아",           "성수동아아파트 성동구"),
+              ("개포주공6·7단지",   "개포주공6단지"),
+              ("서빙고 신동아",      "서빙고신동아아파트"),
+              ("도곡우성",           "도곡우성아파트"),
+              ("서초진흥",           "서초진흥아파트"),
+              ("올림픽훼미리타운",   "올림픽훼밀리타운"),
+              ("개포우성7차",        "개포우성7차"),
+              ("원효산호",           "원효산호아파트"),
+              ("잠실엘스",           "잠실엘스"),
+              ("리센츠",             "잠실리센츠"),
+              ("트리지움",           "잠실트리지움"),
+              ("레이크팰리스",       "잠실레이크팰리스"),
+              ("도곡렉슬",           "도곡렉슬"),
+              ("역삼럭키",           "역삼럭키아파트 도곡동"),
+              ("이촌한가람",         "이촌한가람"),
+              ("디에이치방배",       "디에이치방배"),
+              ("개포자이프레지던스", "개포자이프레지던스"),
+              ("서초그랑자이",       "서초그랑자이"),
           ]
 
-          for months in [["202605","202604","202603","202602","202601","202512"]]:
-              for name, dc, inc, exc in TARGETS:
-                  found_id = None
-                  found_name = None
-                  for ym in months:
-                      items = fetch(dc, ym)
-                      time.sleep(0.2)
-                      for item in items:
-                          apt = str(item.get("aptNm","")).strip()
-                          if not any(k in apt for k in inc): continue
-                          if any(k in apt for k in exc): continue
-                          seq = str(item.get("aptSeq","")).strip()
-                          if "-" in seq:
-                              found_id = seq.split("-")[-1]
-                              found_name = apt
-                              break
-                      if found_id: break
-                  print(f"{name}: aptSeq={found_id} ({found_name}) → https://new.land.naver.com/complexes/{found_id}")
+          # 이미 검증된 ID (변경하지 않음)
+          VERIFIED = {
+              "잠실엘스":           6346,
+              "리센츠":             6249,
+              "트리지움":           6028,
+              "레이크팰리스":       5957,
+              "도곡렉슬":           3623,
+              "개포자이프레지던스": 5235,
+              "이촌한가람":         978,
+              "개포우성7차":        867,
+              "원효산호":           759,
+              "서초그랑자이":       126726,
+          }
+
+          def try_naver_search_api(query):
+              """네이버 부동산 내부 검색 API 시도"""
+              endpoints = [
+                  f"https://new.land.naver.com/api/complexes/search?complexName={urllib.parse.quote(query)}&realEstateTypeCode=APT&page=1&pageSize=5",
+                  f"https://m.land.naver.com/search/complexList.nhn?query={urllib.parse.quote(query)}&type=apt",
+              ]
+              headers = {
+                  "User-Agent": "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile Safari/537.36",
+                  "Referer": "https://new.land.naver.com/",
+                  "Accept": "application/json, text/javascript, */*",
+              }
+              for url in endpoints:
+                  try:
+                      req = urllib.request.Request(url, headers=headers)
+                      with urllib.request.urlopen(req, timeout=8) as r:
+                          raw = r.read().decode("utf-8")
+                          data = json.loads(raw)
+                          # 여러 응답 구조 시도
+                          for key in ["complexList","body","result","data","list"]:
+                              items = data.get(key, [])
+                              if items and len(items) > 0:
+                                  first = items[0]
+                                  cid = first.get("complexNo") or first.get("complexId") or first.get("id")
+                                  cname = first.get("complexName") or first.get("name","")
+                                  if cid:
+                                      return str(cid), cname
+                  except Exception as e:
+                      pass
+              return None, None
+
+          with open("data.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+
+          all_complexes = data.get("complexes", []) + data.get("regularComplexes", [])
+          name_to_complex = {c["name"]: c for c in all_complexes}
+
+          print("=== 네이버 단지 ID 조회 결과 ===")
+          found_count = 0
+          for name, query in TARGETS:
+              c = name_to_complex.get(name)
+              if not c:
+                  print(f"  {name}: data.json에 없음")
+                  continue
+
+              # 검증된 ID는 스킵
+              if name in VERIFIED:
+                  cid = VERIFIED[name]
+                  c["links"]["naver"] = f"https://new.land.naver.com/complexes/{cid}"
+                  print(f"  ✅ {name}: {cid} (검증됨)")
+                  found_count += 1
+                  continue
+
+              # API로 조회 시도
+              cid, cname = try_naver_search_api(query)
+              if cid:
+                  c["links"]["naver"] = f"https://new.land.naver.com/complexes/{cid}"
+                  print(f"  ✅ {name}: {cid} ({cname})")
+                  found_count += 1
+              else:
+                  print(f"  ⚠️  {name}: API 조회 실패 → 기존 링크 유지")
+              time.sleep(0.5)
+
+          print(f"\n총 {found_count}/{len(TARGETS)}개 ID 확보")
+
+          with open("data.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+          print("data.json 저장 완료")
           PYEOF
 
       - name: 실거래가 업데이트 실행
