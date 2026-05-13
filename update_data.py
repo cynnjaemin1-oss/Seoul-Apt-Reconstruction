@@ -40,11 +40,12 @@ REGULAR_SEARCH = {
     "리센츠":           {"include":["리센츠"],            "exclude":[], "area_range":(50,135)},
     "트리지움":         {"include":["트리지움"],          "exclude":[], "area_range":(50,120)},
     "레이크팰리스":     {"include":["레이크팰리스"],      "exclude":[], "area_range":(75,115)},
-    "도곡렉슬":         {"include":["도곡렉슬"],          "exclude":[], "area_range":(80,170)},  # 최소 86㎡, 59㎡ 없음
-    "역삼럭키":         {"include":["역삼럭키"],          "exclude":[], "area_range":(105,155)}, # 112/144㎡만
-    "이촌한가람":       {"include":["한가람"],            "exclude":[], "area_range":(75,150)},
+    "도곡렉슬":         {"include":["도곡렉슬"],          "exclude":[], "area_range":(80,170)},
+    "역삼럭키":         {"include":["역삼럭키"],          "exclude":[], "area_range":(105,155)},
+    "이촌한가람":       {"include":["한가람"],            "exclude":[], "area_range":(80,150)},
     "디에이치방배":     {"include":["디에이치방배"],      "exclude":[], "area_range":(50,120)},
     "개포자이프레지던스":{"include":["개포자이프레지던스"], "exclude":[], "area_range":(50,120)},
+    "서초그랑자이":     {"include":["서초그랑자이"],      "exclude":[], "area_range":(50,120)},
 }
 
 # 전용면적 → 평형 라벨 (재건축용)
