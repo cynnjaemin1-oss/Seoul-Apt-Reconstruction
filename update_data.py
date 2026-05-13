@@ -161,9 +161,6 @@ def update_list(complexes, search_map, size_fn, label):
     for c in complexes:
         print(f"\n[{label}] {c['name']} ({c['district']})")
         all_tx, naver_id = collect_tx(c["name"], c["district"], search_map, size_fn)
-        # 네이버 단지 ID 확보 시 직접 링크로 업데이트
-        if naver_id:
-            c["links"]["naver"] = f"https://new.land.naver.com/complexes/{naver_id}"
         if not all_tx:
             print(f"  ⚠️  실거래 없음"); continue
         st = sorted(all_tx, key=lambda x: x["_sort_key"], reverse=True)
