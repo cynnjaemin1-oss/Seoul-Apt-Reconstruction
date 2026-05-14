@@ -219,9 +219,9 @@
         {
           "size": "126㎡",
           "pyeong": 38,
-          "low": 41.7,
-          "mid": 41.7,
-          "high": 41.7
+          "low": 37.0,
+          "mid": 37.0,
+          "high": 37.0
         }
       ],
       "priceLastUpdated": "2026.05",
@@ -242,8 +242,8 @@
         {
           "date": "2026.04",
           "size": "126㎡",
-          "floor": "중층",
-          "price": 41.7
+          "floor": "저층",
+          "price": 37.0
         }
       ],
       "contribution": {
@@ -410,12 +410,6 @@
       "listings": 28,
       "recentTx": [
         {
-          "date": "2026.04",
-          "size": "84㎡",
-          "floor": "저층",
-          "price": 37.5
-        },
-        {
           "date": "2026.02",
           "size": "59㎡",
           "floor": "중층",
@@ -423,9 +417,15 @@
         },
         {
           "date": "2026.01",
-          "size": "84㎡",
+          "size": "59㎡",
           "floor": "저층",
-          "price": 36.0
+          "price": 31.9
+        },
+        {
+          "date": "2025.12",
+          "size": "59㎡",
+          "floor": "저층",
+          "price": 31.8
         }
       ],
       "contribution": {
