@@ -26,38 +26,16 @@ jobs:
       - name: 라이브러리 설치
         run: pip install python-dateutil requests
 
-      - name: 네이버 단지 ID 자동 조회 및 data.json 업데이트
+      - name: 네이버 단지 ID 검증 및 자동 매핑
         run: |
           python3 << 'PYEOF'
-          import urllib.request, urllib.parse, json, time, re
+          import urllib.request, json, re, time
 
-          # 단지명 → 네이버 검색 쿼리 매핑
-          TARGETS = [
-              ("잠실장미",          "잠실장미아파트"),
-              ("잠실우성1·2·3차",   "잠실우성아파트 잠실동"),
-              ("올림픽선수기자촌",   "올림픽선수기자촌"),
-              ("성수동아",           "성수동아아파트 성동구"),
-              ("개포주공6·7단지",   "개포주공6단지"),
-              ("서빙고 신동아",      "서빙고신동아아파트"),
-              ("도곡우성",           "도곡우성아파트"),
-              ("서초진흥",           "서초진흥아파트"),
-              ("올림픽훼미리타운",   "올림픽훼밀리타운"),
-              ("개포우성7차",        "개포우성7차"),
-              ("원효산호",           "원효산호아파트"),
-              ("잠실엘스",           "잠실엘스"),
-              ("리센츠",             "잠실리센츠"),
-              ("트리지움",           "잠실트리지움"),
-              ("레이크팰리스",       "잠실레이크팰리스"),
-              ("도곡렉슬",           "도곡렉슬"),
-              ("역삼럭키",           "역삼럭키아파트 도곡동"),
-              ("이촌한가람",         "이촌한가람"),
-              ("디에이치방배",       "디에이치방배"),
-              ("개포자이프레지던스", "개포자이프레지던스"),
-              ("서초그랑자이",       "서초그랑자이"),
-          ]
+          # 미확인 ID 후보 → 실제 단지명 확인
+          UNVERIFIED_IDS = [757, 492, 329, 186598]
 
-          # 이미 검증된 ID (변경하지 않음)
-          VERIFIED = {
+          # 이미 검증된 ID (절대 변경 안 함)
+          VERIFIED_MAP = {
               "잠실엘스":           6346,
               "리센츠":             6249,
               "트리지움":           6028,
@@ -68,75 +46,47 @@ jobs:
               "개포우성7차":        867,
               "원효산호":           759,
               "서초그랑자이":       126726,
+              "서초그랑자이":       126726,
+              "도곡우성":           339,
+              "올림픽훼미리타운":   89,
           }
 
-          def try_naver_search_api(query):
-              """네이버 부동산 내부 검색 API 시도"""
-              endpoints = [
-                  f"https://new.land.naver.com/api/complexes/search?complexName={urllib.parse.quote(query)}&realEstateTypeCode=APT&page=1&pageSize=5",
-                  f"https://m.land.naver.com/search/complexList.nhn?query={urllib.parse.quote(query)}&type=apt",
-              ]
+          # 미확인 단지들 (매핑 필요)
+          UNVERIFIED_COMPLEXES = ["서빙고 신동아","서초진흥","역삼럭키","디에이치방배",
+                                   "잠실장미","잠실우성1·2·3차","올림픽선수기자촌",
+                                   "성수동아","개포주공6·7단지","도곡한신","도곡대림"]
+
+          def get_complex_name_from_naver(complex_id):
+              """네이버 부동산 페이지에서 실제 단지명 추출"""
+              url = f"https://new.land.naver.com/complexes/{complex_id}"
               headers = {
-                  "User-Agent": "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile Safari/537.36",
-                  "Referer": "https://new.land.naver.com/",
-                  "Accept": "application/json, text/javascript, */*",
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                  "Accept-Language": "ko-KR,ko;q=0.9",
               }
-              for url in endpoints:
-                  try:
-                      req = urllib.request.Request(url, headers=headers)
-                      with urllib.request.urlopen(req, timeout=8) as r:
-                          raw = r.read().decode("utf-8")
-                          data = json.loads(raw)
-                          # 여러 응답 구조 시도
-                          for key in ["complexList","body","result","data","list"]:
-                              items = data.get(key, [])
-                              if items and len(items) > 0:
-                                  first = items[0]
-                                  cid = first.get("complexNo") or first.get("complexId") or first.get("id")
-                                  cname = first.get("complexName") or first.get("name","")
-                                  if cid:
-                                      return str(cid), cname
-                  except Exception as e:
-                      pass
-              return None, None
+              try:
+                  req = urllib.request.Request(url, headers=headers)
+                  with urllib.request.urlopen(req, timeout=10) as r:
+                      html = r.read().decode("utf-8")
+                  # <title> 태그에서 단지명 추출
+                  m = re.search(r'<title[^>]*>([^<]+)</title>', html)
+                  if m:
+                      return m.group(1).strip()
+              except Exception as e:
+                  return f"오류: {e}"
+              return None
 
-          with open("data.json", "r", encoding="utf-8") as f:
-              data = json.load(f)
-
-          all_complexes = data.get("complexes", []) + data.get("regularComplexes", [])
-          name_to_complex = {c["name"]: c for c in all_complexes}
-
-          print("=== 네이버 단지 ID 조회 결과 ===")
-          found_count = 0
-          for name, query in TARGETS:
-              c = name_to_complex.get(name)
-              if not c:
-                  print(f"  {name}: data.json에 없음")
-                  continue
-
-              # 검증된 ID는 스킵
-              if name in VERIFIED:
-                  cid = VERIFIED[name]
-                  c["links"]["naver"] = f"https://new.land.naver.com/complexes/{cid}"
-                  print(f"  ✅ {name}: {cid} (검증됨)")
-                  found_count += 1
-                  continue
-
-              # API로 조회 시도
-              cid, cname = try_naver_search_api(query)
-              if cid:
-                  c["links"]["naver"] = f"https://new.land.naver.com/complexes/{cid}"
-                  print(f"  ✅ {name}: {cid} ({cname})")
-                  found_count += 1
-              else:
-                  print(f"  ⚠️  {name}: API 조회 실패 → 기존 링크 유지")
+          print("=== 미확인 ID 단지명 확인 ===")
+          for cid in UNVERIFIED_IDS:
+              name = get_complex_name_from_naver(cid)
+              print(f"  ID {cid}: {name}")
               time.sleep(0.5)
 
-          print(f"\n총 {found_count}/{len(TARGETS)}개 ID 확보")
+          print("\n=== 검증된 ID 확인 (샘플) ===")
+          for name, cid in list(VERIFIED_MAP.items())[:4]:
+              title = get_complex_name_from_naver(cid)
+              print(f"  {name} (ID:{cid}): {title}")
+              time.sleep(0.5)
 
-          with open("data.json", "w", encoding="utf-8") as f:
-              json.dump(data, f, ensure_ascii=False, indent=2)
-          print("data.json 저장 완료")
           PYEOF
 
       - name: 실거래가 업데이트 실행
