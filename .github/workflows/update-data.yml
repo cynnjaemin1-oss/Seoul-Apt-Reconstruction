@@ -43,33 +43,32 @@ jobs:
               "성동구":"11200","용산구":"11140",
           }
 
-          # 재건축 + 일반매물 전체 검색 규칙
+          # update_data.py와 완전히 동일한 검색 규칙
           ALL_TARGETS = [
-              # (단지명, 구코드, include, exclude, area_min, area_max)
-              ("잠실장미",        "11710", ["장미1","장미2"],                         [],                                          45,  145),
-              ("잠실우성1·2·3차", "11710", ["우성아파트"],                            ["우성4차","가락우성","도곡우성"],             75,  170),
-              ("올림픽선수기자촌","11710", ["올림픽선수기자촌"],                      [],                                          75,  140),
-              ("성수동아",        "11200", ["동아"],                                   ["동아그린","서울숲리버그린동아","신동아"],    50,  130),
-              ("개포주공6·7단지", "11680", ["개포주공6단지","개포주공7단지"],         [],                                          30,   60),
-              ("서빙고 신동아",   "11140", ["서빙고신동아"],                          [],                                          75,  175),
-              ("도곡우성",        "11680", ["도곡우성"],                               [],                                          75,  120),
-              ("서초진흥",        "11650", ["서초진흥"],                               [],                                          45,  100),
-              ("올림픽훼미리타운","11710", ["올림픽훼밀리타운","올림픽훼미리타운"],   [],                                          75,  140),
-              ("개포우성7차",     "11680", ["개포우성7차"],                            [],                                          70,  110),
-              ("원효산호",        "11140", ["원효산호"],                               [],                                          90,  155),
-              ("도곡한신",        "11680", ["한신엠비씨"],                             [],                                          55,  115),
-              ("도곡대림",        "11680", ["대림"],                                   ["대림역삼","대림아크로빌","청담대림","개포대림"], 82, 90),
-              ("도곡삼익",        "11680", ["삼익"],                                   ["삼익대청","대청삼익","개포삼익"],           100, 112),
-              ("잠실엘스",        "11710", ["잠실엘스"],                               [],                                          50,  135),
-              ("리센츠",          "11710", ["리센츠"],                                 [],                                          50,  135),
-              ("트리지움",        "11710", ["트리지움"],                               [],                                          50,  120),
-              ("레이크팰리스",    "11710", ["레이크팰리스"],                           [],                                          75,  115),
-              ("도곡렉슬",        "11680", ["도곡렉슬"],                               [],                                          80,  170),
-              ("역삼럭키",        "11680", ["역삼럭키"],                               [],                                         105,  155),
-              ("이촌한가람",      "11140", ["한가람"],                                 [],                                          80,  150),
-              ("디에이치방배",    "11650", ["디에이치방배"],                           [],                                          50,  120),
-              ("개포자이프레지던스","11680",["개포자이프레지던스"],                   [],                                          50,  120),
-              ("서초그랑자이",    "11650", ["서초그랑자이"],                           [],                                          50,  120),
+              ("잠실장미",        "11710", ["장미1","장미2"],                          [],                                               45,  145),
+              ("잠실우성1·2·3차", "11710", ["우성아파트"],                             ["우성4차","가락우성","도곡우성"],                 75,  170),
+              ("올림픽선수기자촌","11710", ["올림픽선수기자촌"],                       [],                                               75,  140),
+              ("성수동아",        "11200", ["동아"],                                    ["동아그린","서울숲리버그린동아","신동아"],         50,  130),
+              ("개포주공6·7단지", "11680", ["개포주공6단지","개포주공7단지"],          [],                                               30,   60),
+              ("서빙고 신동아",   "11140", ["서빙고신동아"],                           [],                                               75,  175),
+              ("도곡우성",        "11680", ["도곡우성"],                                [],                                               75,  120),
+              ("서초진흥",        "11650", ["서초진흥"],                                [],                                               45,  100),
+              ("올림픽훼미리타운","11710", ["올림픽훼밀리타운","올림픽훼미리타운"],    [],                                               75,  140),
+              ("개포우성7차",     "11680", ["우성7차"],                                 [],                                               70,  110),
+              ("원효산호",        "11140", ["산호"],                                    ["삼익산호","개포산호"],                           90,  155),
+              ("도곡한신",        "11680", ["한신엠비씨"],                              [],                                               55,  115),
+              ("도곡대림",        "11680", ["대림"],                                    ["대림역삼","대림아크로빌","청담대림","개포대림"], 82,   90),
+              ("도곡삼익",        "11680", ["삼익"],                                    ["삼익대청","대청삼익","개포삼익"],               100,  112),
+              ("잠실엘스",        "11710", ["잠실엘스"],                                [],                                               50,  135),
+              ("리센츠",          "11710", ["리센츠"],                                  [],                                               50,  135),
+              ("트리지움",        "11710", ["트리지움"],                                [],                                               50,  120),
+              ("레이크팰리스",    "11710", ["레이크팰리스"],                            [],                                               75,  115),
+              ("도곡렉슬",        "11680", ["도곡렉슬"],                                [],                                               80,  170),
+              ("역삼럭키",        "11680", ["역삼럭키"],                                [],                                              105,  155),
+              ("이촌한가람",      "11140", ["한가람"],                                  [],                                               80,  150),
+              ("디에이치방배",    "11650", ["디에이치방배"],                            [],                                               50,  120),
+              ("개포자이프레지던스","11680",["개포자이프레지던스"],                    [],                                               50,  120),
+              ("서초그랑자이",    "11650", ["서초그랑자이"],                            [],                                               50,  120),
           ]
 
           def fetch(dc, ym):
@@ -85,18 +84,18 @@ jobs:
               except: return []
 
           now = datetime.now()
-          # 최근 6개월치 데이터를 미리 구별로 캐싱
-          cache = {}
-          months = [(now - relativedelta(months=i)).strftime("%Y%m") for i in range(6)]
+          # 12개월 조회 (update_data.py와 동일)
+          months = [(now - relativedelta(months=i)).strftime("%Y%m") for i in range(12)]
           districts = set(t[1] for t in ALL_TARGETS)
-          print("데이터 로딩 중...")
+          print("데이터 로딩 중 (12개월)...")
+          cache = {}
           for dc in districts:
               cache[dc] = {}
               for ym in months:
                   cache[dc][ym] = fetch(dc, ym)
                   time.sleep(0.2)
 
-          print("\n=== 전 단지 API 매칭 진단 (최근 6개월) ===\n")
+          print("\n=== 전 단지 API 매칭 진단 (최근 12개월) ===\n")
           ok_count = 0
           for name, dc, inc, exc, area_min, area_max in ALL_TARGETS:
               found_names = set()
@@ -123,7 +122,7 @@ jobs:
                   print(f"   매칭명: {', '.join(sorted(found_names))}")
                   print(f"   최근거래: {found_tx[0] if found_tx else '없음'}")
               else:
-                  print(f"❌ {name} — 매칭 없음 (검색: {inc}, 면적: {area_min}~{area_max}㎡)")
+                  print(f"❌ {name} — 매칭 없음")
               print()
 
           print(f"결과: {ok_count}/{len(ALL_TARGETS)}개 단지 매칭 성공")
@@ -141,56 +140,3 @@ jobs:
           git add data.json
           git diff --cached --quiet || git commit -m "auto: 실거래가 업데이트 $(date +'%Y-%m-%d')"
           git push
-
-      - name: 미매칭 단지 API명 추가 진단
-        env:
-          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
-        run: |
-          python3 << 'PYEOF'
-          import urllib.request, urllib.parse, json, os, time
-
-          API_KEY = os.environ["MOLIT_API_KEY"]
-          API_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
-
-          def fetch(dc, ym):
-              key = urllib.parse.quote(API_KEY, safe='')
-              p = urllib.parse.urlencode({"LAWD_CD":dc,"DEAL_YMD":ym,"numOfRows":1000,"pageNo":1,"_type":"json"})
-              try:
-                  with urllib.request.urlopen(f"{API_URL}?serviceKey={key}&{p}", timeout=15) as r:
-                      d = json.loads(r.read().decode("utf-8"))
-                  items = d.get("response",{}).get("body",{}).get("items",{})
-                  if not items: return []
-                  item = items.get("item",[])
-                  return [item] if isinstance(item, dict) else item
-              except Exception as e:
-                  print(f"실패: {e}"); return []
-
-          months = ["202605","202604","202603","202602","202601","202512","202511","202510","202509"]
-
-          print("=== 서빙고신동아 후보 (용산구 신동아 포함) ===")
-          for ym in months:
-              items = fetch("11140", ym)
-              time.sleep(0.2)
-              hits = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"))
-                      for i in items if "신동아" in str(i.get("aptNm","")) or "서빙고" in str(i.get("aptNm",""))]
-              if hits:
-                  for h in sorted(set(hits)): print(f"  [{ym}] {h[0]} | {h[1]}㎡ | {h[2]}만")
-
-          print("\n=== 서초진흥 후보 (서초구 진흥 포함) ===")
-          for ym in months:
-              items = fetch("11650", ym)
-              time.sleep(0.2)
-              hits = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"))
-                      for i in items if "진흥" in str(i.get("aptNm",""))]
-              if hits:
-                  for h in sorted(set(hits)): print(f"  [{ym}] {h[0]} | {h[1]}㎡ | {h[2]}만")
-
-          print("\n=== 디에이치방배 후보 (서초구 방배 디에이치) ===")
-          for ym in months:
-              items = fetch("11650", ym)
-              time.sleep(0.2)
-              hits = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"))
-                      for i in items if "방배" in str(i.get("aptNm","")) and ("디에이치" in str(i.get("aptNm","")) or "디에이" in str(i.get("aptNm","")))]
-              if hits:
-                  for h in sorted(set(hits)): print(f"  [{ym}] {h[0]} | {h[1]}㎡ | {h[2]}만")
-          PYEOF
