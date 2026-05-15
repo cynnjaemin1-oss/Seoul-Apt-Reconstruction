@@ -25,12 +25,12 @@ RECON_SEARCH = {
     "올림픽선수기자촌": {"include":["올림픽선수기자촌"],               "exclude":[], "area_range":(75, 140)},
     "성수동아":         {"include":["동아"],                           "exclude":["동아그린","서울숲리버그린동아","신동아"], "area_range":(50, 130)},
     "개포주공6·7단지":  {"include":["개포주공6단지","개포주공7단지"],  "exclude":[], "area_range":(30, 60)},
-    "서빙고 신동아":    {"include":["서빙고신동아"],                   "exclude":[], "area_range":(75, 175)},
+    "서빙고 신동아":    {"include":["신동아"],                   "exclude":[], "area_range":(90, 215)},
     "도곡우성":         {"include":["도곡우성"],                       "exclude":[], "area_range":(75, 120)},
-    "서초진흥":         {"include":["서초진흥"],                       "exclude":[], "area_range":(45, 100)},
+    "서초진흥":         {"include":["진흥아파트"],                     "exclude":[], "area_range":(98, 165)},
     "올림픽훼미리타운": {"include":["올림픽훼밀리타운","올림픽훼미리타운"], "exclude":[], "area_range":(75, 140)},
-    "개포우성7차":      {"include":["우성7차"],                        "exclude":[], "area_range":(70, 110)},
-    "원효산호":         {"include":["산호"],                           "exclude":["삼익산호","개포산호"], "area_range":(90, 155)},
+    "개포우성7차":      {"include":["우성7"],                        "exclude":[], "area_range":(65, 90)},
+    "원효산호":         {"include":["산호"],                           "exclude":["삼익산호","개포산호"], "area_range":(38, 110)},
     "도곡한신":         {"include":["한신엠비씨"],                     "exclude":[], "area_range":(55, 115)},  # API 등록명: 한신엠비씨, 전용58/84/101㎡
     "도곡대림":         {"include":["대림"],                           "exclude":["대림역삼","대림아크로빌","청담대림","개포대림","역삼대림"], "area_range":(82, 90)},  # 전용84.93㎡
     "도곡삼익":         {"include":["삼익"],                           "exclude":["삼익대청","대청삼익","개포삼익"], "area_range":(100, 112)},  # 전용104.01㎡
@@ -44,8 +44,8 @@ REGULAR_SEARCH = {
     "트리지움":         {"include":["트리지움"],          "exclude":[], "area_range":(50,120)},
     "레이크팰리스":     {"include":["레이크팰리스"],      "exclude":[], "area_range":(75,115)},
     "도곡렉슬":         {"include":["도곡렉슬"],          "exclude":[], "area_range":(80,170)},
-    "역삼럭키":         {"include":["역삼럭키"],          "exclude":[], "area_range":(105,155)},
-    "이촌한가람":       {"include":["한가람"],            "exclude":[], "area_range":(80,150)},
+    "역삼럭키":         {"include":["럭키"],             "exclude":["럭키타워","개포럭키"], "area_range":(80, 130)},
+    "이촌한가람":       {"include":["한가람"],            "exclude":[], "area_range":(55, 120)},
     "디에이치방배":     {"include":["디에이치방배"],      "exclude":[], "area_range":(50,120)},
     "개포자이프레지던스":{"include":["개포자이프레지던스"], "exclude":[], "area_range":(50,120)},
     "서초그랑자이":     {"include":["서초그랑자이"],      "exclude":[], "area_range":(50,120)},
