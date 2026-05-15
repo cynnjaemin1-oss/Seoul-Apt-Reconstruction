@@ -967,9 +967,9 @@
         {
           "size": "84㎡",
           "pyeong": 24,
-          "low": 17,
-          "mid": 20,
-          "high": 22
+          "low": 25.6,
+          "mid": 25.6,
+          "high": 25.6
         },
         {
           "size": "105㎡",
@@ -991,21 +991,21 @@
       "recentTx": [
         {
           "date": "2026.04",
-          "size": "105㎡",
+          "size": "84㎡",
           "floor": "중층",
+          "price": 25.6
+        },
+        {
+          "date": "2026.04",
+          "size": "84㎡",
+          "floor": "저층",
           "price": 25.0
         },
         {
-          "date": "2025.06",
+          "date": "2026.04",
           "size": "84㎡",
-          "floor": "중층",
-          "price": 19.8
-        },
-        {
-          "date": "2025.03",
-          "size": "126㎡",
-          "floor": "중층",
-          "price": 26.0
+          "floor": "저층",
+          "price": 25.0
         }
       ],
       "contribution": {
@@ -1074,19 +1074,19 @@
       "recentTx": [
         {
           "date": "2025.11",
-          "size": "105㎡",
-          "floor": "고층",
+          "size": "84㎡",
+          "floor": "중층",
           "price": 26.8
         },
         {
           "date": "2025.07",
-          "size": "105㎡",
-          "floor": "중층",
+          "size": "84㎡",
+          "floor": "저층",
           "price": 25.5
         },
         {
           "date": "2025.06",
-          "size": "105㎡",
+          "size": "84㎡",
           "floor": "중층",
           "price": 23.7
         }
@@ -1139,9 +1139,9 @@
         {
           "size": "105㎡",
           "pyeong": 34,
-          "low": 20,
-          "mid": 24,
-          "high": 28
+          "low": 26.3,
+          "mid": 26.3,
+          "high": 26.3
         },
         {
           "size": "126㎡",
@@ -1151,9 +1151,28 @@
           "high": 36
         }
       ],
-      "priceLastUpdated": "2025.05",
+      "priceLastUpdated": "2026.05",
       "listings": 6,
-      "recentTx": [],
+      "recentTx": [
+        {
+          "date": "2025.11",
+          "size": "105㎡",
+          "floor": "저층",
+          "price": 26.3
+        },
+        {
+          "date": "2025.11",
+          "size": "105㎡",
+          "floor": "저층",
+          "price": 26.3
+        },
+        {
+          "date": "2025.10",
+          "size": "105㎡",
+          "floor": "저층",
+          "price": 25.9
+        }
+      ],
       "contribution": {
         "low": 4,
         "high": 8,
