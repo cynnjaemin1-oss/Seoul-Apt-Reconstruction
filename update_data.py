@@ -101,13 +101,12 @@ def fetch_transactions(district_code, yyyymm):
 
 def collect_tx(name, district, search_map, size_fn):
     dc = DISTRICT_CODES.get(district)
-    if not dc: return [], None
+    if not dc: return []
     rule = search_map.get(name, {"include":[name],"exclude":[]})
     inc  = rule["include"]
     exc  = rule["exclude"]
     area_min, area_max = rule.get("area_range", (0, 9999))
     all_tx, found = [], set()
-    naver_id = None  # aptSeq에서 추출한 네이버 단지 ID
     now = datetime.now()
     for i in range(MONTHS_BACK):
         yyyymm = (now - relativedelta(months=i)).strftime("%Y%m")
@@ -120,11 +119,6 @@ def collect_tx(name, district, search_map, size_fn):
             area = float(item.get("excluUseAr", 0) or 0)
             if not (area_min <= area <= area_max): continue
             found.add(apt)
-            # aptSeq = "11710-6346" 형식 → 6346이 네이버 단지 ID
-            if naver_id is None:
-                apt_seq = str(item.get("aptSeq","")).strip()
-                if "-" in apt_seq:
-                    naver_id = apt_seq.split("-")[-1]
             year  = str(item.get("dealYear","")).strip()
             month = str(item.get("dealMonth","")).strip().zfill(2)
             price_raw = str(item.get("dealAmount","0")).replace(",","").strip()
@@ -139,8 +133,7 @@ def collect_tx(name, district, search_map, size_fn):
                 "_area":     area,
             })
     if found: print(f"  📌 {', '.join(sorted(found))}")
-    if naver_id: print(f"  🔗 네이버 단지 ID: {naver_id}")
-    return all_tx, naver_id
+    return all_tx
 
 def compute_price(all_tx, existing):
     """평형별 가장 최근 거래 1건으로 mid 업데이트"""
@@ -164,7 +157,7 @@ def update_list(complexes, search_map, size_fn, label):
     today, cnt = datetime.now().strftime("%Y.%m"), 0
     for c in complexes:
         print(f"\n[{label}] {c['name']} ({c['district']})")
-        all_tx, naver_id = collect_tx(c["name"], c["district"], search_map, size_fn)
+        all_tx = collect_tx(c["name"], c["district"], search_map, size_fn)
         if not all_tx:
             print(f"  ⚠️  실거래 없음"); continue
         st = sorted(all_tx, key=lambda x: x["_sort_key"], reverse=True)
