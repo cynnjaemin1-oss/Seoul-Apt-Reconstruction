@@ -141,3 +141,56 @@ jobs:
           git add data.json
           git diff --cached --quiet || git commit -m "auto: 실거래가 업데이트 $(date +'%Y-%m-%d')"
           git push
+
+      - name: 미매칭 단지 API명 추가 진단
+        env:
+          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, urllib.parse, json, os, time
+
+          API_KEY = os.environ["MOLIT_API_KEY"]
+          API_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
+
+          def fetch(dc, ym):
+              key = urllib.parse.quote(API_KEY, safe='')
+              p = urllib.parse.urlencode({"LAWD_CD":dc,"DEAL_YMD":ym,"numOfRows":1000,"pageNo":1,"_type":"json"})
+              try:
+                  with urllib.request.urlopen(f"{API_URL}?serviceKey={key}&{p}", timeout=15) as r:
+                      d = json.loads(r.read().decode("utf-8"))
+                  items = d.get("response",{}).get("body",{}).get("items",{})
+                  if not items: return []
+                  item = items.get("item",[])
+                  return [item] if isinstance(item, dict) else item
+              except Exception as e:
+                  print(f"실패: {e}"); return []
+
+          months = ["202605","202604","202603","202602","202601","202512","202511","202510","202509"]
+
+          print("=== 서빙고신동아 후보 (용산구 신동아 포함) ===")
+          for ym in months:
+              items = fetch("11140", ym)
+              time.sleep(0.2)
+              hits = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"))
+                      for i in items if "신동아" in str(i.get("aptNm","")) or "서빙고" in str(i.get("aptNm",""))]
+              if hits:
+                  for h in sorted(set(hits)): print(f"  [{ym}] {h[0]} | {h[1]}㎡ | {h[2]}만")
+
+          print("\n=== 서초진흥 후보 (서초구 진흥 포함) ===")
+          for ym in months:
+              items = fetch("11650", ym)
+              time.sleep(0.2)
+              hits = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"))
+                      for i in items if "진흥" in str(i.get("aptNm",""))]
+              if hits:
+                  for h in sorted(set(hits)): print(f"  [{ym}] {h[0]} | {h[1]}㎡ | {h[2]}만")
+
+          print("\n=== 디에이치방배 후보 (서초구 방배 디에이치) ===")
+          for ym in months:
+              items = fetch("11650", ym)
+              time.sleep(0.2)
+              hits = [(i.get("aptNm"), i.get("excluUseAr"), i.get("dealAmount"))
+                      for i in items if "방배" in str(i.get("aptNm","")) and ("디에이치" in str(i.get("aptNm","")) or "디에이" in str(i.get("aptNm","")))]
+              if hits:
+                  for h in sorted(set(hits)): print(f"  [{ym}] {h[0]} | {h[1]}㎡ | {h[2]}만")
+          PYEOF
