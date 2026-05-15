@@ -29,8 +29,8 @@ RECON_SEARCH = {
     "도곡우성":         {"include":["도곡우성"],                       "exclude":[], "area_range":(75, 120)},
     "서초진흥":         {"include":["서초진흥"],                       "exclude":[], "area_range":(45, 100)},
     "올림픽훼미리타운": {"include":["올림픽훼밀리타운","올림픽훼미리타운"], "exclude":[], "area_range":(75, 140)},
-    "개포우성7차":      {"include":["개포우성7차"],                    "exclude":[], "area_range":(70, 110)},
-    "원효산호":         {"include":["원효산호"],                       "exclude":[], "area_range":(90, 155)},
+    "개포우성7차":      {"include":["우성7차"],                        "exclude":[], "area_range":(70, 110)},
+    "원효산호":         {"include":["산호"],                           "exclude":["삼익산호","개포산호"], "area_range":(90, 155)},
     "도곡한신":         {"include":["한신엠비씨"],                     "exclude":[], "area_range":(55, 115)},  # API 등록명: 한신엠비씨, 전용58/84/101㎡
     "도곡대림":         {"include":["대림"],                           "exclude":["대림역삼","대림아크로빌","청담대림","개포대림","역삼대림"], "area_range":(82, 90)},  # 전용84.93㎡
     "도곡삼익":         {"include":["삼익"],                           "exclude":["삼익대청","대청삼익","개포삼익"], "area_range":(100, 112)},  # 전용104.01㎡
