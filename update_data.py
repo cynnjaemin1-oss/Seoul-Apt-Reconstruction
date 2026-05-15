@@ -31,9 +31,9 @@ RECON_SEARCH = {
     "올림픽훼미리타운": {"include":["올림픽훼밀리타운","올림픽훼미리타운"], "exclude":[], "area_range":(75, 140)},
     "개포우성7차":      {"include":["개포우성7차"],                    "exclude":[], "area_range":(70, 110)},
     "원효산호":         {"include":["원효산호"],                       "exclude":[], "area_range":(90, 155)},
-    "도곡한신":         {"include":["도곡한신"],                       "exclude":[], "area_range":(70, 140)},
-    "도곡대림":         {"include":["도곡대림"],                       "exclude":[], "area_range":(75, 125)},
-    "도곡삼익":         {"include":["도곡삼익"],                       "exclude":[], "area_range":(75, 115)},
+    "도곡한신":         {"include":["도곡한신"],                       "exclude":[], "area_range":(75, 140)},
+    "도곡대림":         {"include":["도곡대림"],                       "exclude":[], "area_range":(98, 108)},  # 102/104㎡만
+    "도곡삼익":         {"include":["도곡삼익"],                       "exclude":[], "area_range":(110, 170)}, # 113/165㎡
 }
 
 # ── 일반 매물 검색 규칙 ──────────────────────────────
