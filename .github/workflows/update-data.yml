@@ -26,15 +26,51 @@ jobs:
       - name: 라이브러리 설치
         run: pip install python-dateutil
 
-      - name: 도곡한신·대림·삼익 API 이름 진단
+      - name: 전 단지 API 매칭 진단
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: |
           python3 << 'PYEOF'
           import urllib.request, urllib.parse, json, os, time
+          from datetime import datetime
+          from dateutil.relativedelta import relativedelta
 
           API_KEY = os.environ["MOLIT_API_KEY"]
           API_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
+
+          DISTRICT_CODES = {
+              "강남구":"11680","서초구":"11650","송파구":"11710",
+              "성동구":"11200","용산구":"11140",
+          }
+
+          # 재건축 + 일반매물 전체 검색 규칙
+          ALL_TARGETS = [
+              # (단지명, 구코드, include, exclude, area_min, area_max)
+              ("잠실장미",        "11710", ["장미1","장미2"],                         [],                                          45,  145),
+              ("잠실우성1·2·3차", "11710", ["우성아파트"],                            ["우성4차","가락우성","도곡우성"],             75,  170),
+              ("올림픽선수기자촌","11710", ["올림픽선수기자촌"],                      [],                                          75,  140),
+              ("성수동아",        "11200", ["동아"],                                   ["동아그린","서울숲리버그린동아","신동아"],    50,  130),
+              ("개포주공6·7단지", "11680", ["개포주공6단지","개포주공7단지"],         [],                                          30,   60),
+              ("서빙고 신동아",   "11140", ["서빙고신동아"],                          [],                                          75,  175),
+              ("도곡우성",        "11680", ["도곡우성"],                               [],                                          75,  120),
+              ("서초진흥",        "11650", ["서초진흥"],                               [],                                          45,  100),
+              ("올림픽훼미리타운","11710", ["올림픽훼밀리타운","올림픽훼미리타운"],   [],                                          75,  140),
+              ("개포우성7차",     "11680", ["개포우성7차"],                            [],                                          70,  110),
+              ("원효산호",        "11140", ["원효산호"],                               [],                                          90,  155),
+              ("도곡한신",        "11680", ["한신엠비씨"],                             [],                                          55,  115),
+              ("도곡대림",        "11680", ["대림"],                                   ["대림역삼","대림아크로빌","청담대림","개포대림"], 82, 90),
+              ("도곡삼익",        "11680", ["삼익"],                                   ["삼익대청","대청삼익","개포삼익"],           100, 112),
+              ("잠실엘스",        "11710", ["잠실엘스"],                               [],                                          50,  135),
+              ("리센츠",          "11710", ["리센츠"],                                 [],                                          50,  135),
+              ("트리지움",        "11710", ["트리지움"],                               [],                                          50,  120),
+              ("레이크팰리스",    "11710", ["레이크팰리스"],                           [],                                          75,  115),
+              ("도곡렉슬",        "11680", ["도곡렉슬"],                               [],                                          80,  170),
+              ("역삼럭키",        "11680", ["역삼럭키"],                               [],                                         105,  155),
+              ("이촌한가람",      "11140", ["한가람"],                                 [],                                          80,  150),
+              ("디에이치방배",    "11650", ["디에이치방배"],                           [],                                          50,  120),
+              ("개포자이프레지던스","11680",["개포자이프레지던스"],                   [],                                          50,  120),
+              ("서초그랑자이",    "11650", ["서초그랑자이"],                           [],                                          50,  120),
+          ]
 
           def fetch(dc, ym):
               key = urllib.parse.quote(API_KEY, safe='')
@@ -46,21 +82,51 @@ jobs:
                   if not items: return []
                   item = items.get("item",[])
                   return [item] if isinstance(item, dict) else item
-              except Exception as e:
-                  print(f"실패: {e}"); return []
+              except: return []
 
-          print("=== 강남구 한신/대림/삼익 포함 아파트명 ===")
-          for ym in ["202604","202603","202602","202601","202512","202511","202510"]:
-              items = fetch("11680", ym)
-              time.sleep(0.3)
-              matches = [
-                  f"aptNm={i.get('aptNm')} | 전용={i.get('excluUseAr')}㎡ | {i.get('dealAmount')}만"
-                  for i in items
-                  if any(k in str(i.get("aptNm","")) for k in ["한신","대림","삼익"])
-              ]
-              if matches:
-                  print(f"[{ym}]")
-                  for m in sorted(set(matches)): print(f"  {m}")
+          now = datetime.now()
+          # 최근 6개월치 데이터를 미리 구별로 캐싱
+          cache = {}
+          months = [(now - relativedelta(months=i)).strftime("%Y%m") for i in range(6)]
+          districts = set(t[1] for t in ALL_TARGETS)
+          print("데이터 로딩 중...")
+          for dc in districts:
+              cache[dc] = {}
+              for ym in months:
+                  cache[dc][ym] = fetch(dc, ym)
+                  time.sleep(0.2)
+
+          print("\n=== 전 단지 API 매칭 진단 (최근 6개월) ===\n")
+          ok_count = 0
+          for name, dc, inc, exc, area_min, area_max in ALL_TARGETS:
+              found_names = set()
+              found_tx = []
+              for ym in months:
+                  for item in cache[dc].get(ym, []):
+                      apt = str(item.get("aptNm","")).strip()
+                      if not any(k in apt for k in inc): continue
+                      if any(k in apt for k in exc): continue
+                      area = float(item.get("excluUseAr", 0) or 0)
+                      if not (area_min <= area <= area_max): continue
+                      found_names.add(apt)
+                      price_raw = str(item.get("dealAmount","0")).replace(",","").strip()
+                      try:
+                          price = round(int(price_raw)/10000, 1)
+                          year = str(item.get("dealYear","")).strip()
+                          month = str(item.get("dealMonth","")).strip().zfill(2)
+                          found_tx.append(f"{year}.{month} {area}㎡ {price}억")
+                      except: pass
+
+              if found_names:
+                  ok_count += 1
+                  print(f"✅ {name}")
+                  print(f"   매칭명: {', '.join(sorted(found_names))}")
+                  print(f"   최근거래: {found_tx[0] if found_tx else '없음'}")
+              else:
+                  print(f"❌ {name} — 매칭 없음 (검색: {inc}, 면적: {area_min}~{area_max}㎡)")
+              print()
+
+          print(f"결과: {ok_count}/{len(ALL_TARGETS)}개 단지 매칭 성공")
           PYEOF
 
       - name: 실거래가 업데이트 실행
