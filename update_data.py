@@ -29,7 +29,7 @@ RECON_SEARCH = {
     "도곡우성":         {"include":["도곡우성"],                       "exclude":[], "area_range":(75, 120)},
     "서초진흥":         {"include":["진흥아파트"],                     "exclude":[], "area_range":(98, 165)},
     "올림픽훼미리타운": {"include":["올림픽훼밀리타운","올림픽훼미리타운"], "exclude":[], "area_range":(75, 140)},
-    "개포우성7차":      {"include":["우성7"],                        "exclude":[], "area_range":(65, 90)},
+    "개포우성7차":      {"include":["우성7"],                        "exclude":["우성74"], "area_range":(65, 110)},
     "원효산호":         {"include":["산호"],                           "exclude":["삼익산호","개포산호"], "area_range":(38, 110)},
     "도곡한신":         {"include":["한신엠비씨"],                     "exclude":[], "area_range":(55, 115)},  # API 등록명: 한신엠비씨, 전용58/84/101㎡
     "도곡대림":         {"include":["대림"],                           "exclude":["대림역삼","대림아크로빌","청담대림","개포대림","역삼대림"], "area_range":(82, 90)},  # 전용84.93㎡
@@ -136,18 +136,36 @@ def collect_tx(name, district, search_map, size_fn):
     return all_tx
 
 def compute_price(all_tx, existing):
-    """평형별 가장 최근 거래 1건으로 mid 업데이트"""
-    size_latest = {}
-    for tx in sorted(all_tx, key=lambda x: x["_sort_key"], reverse=True):
-        if tx["size"] not in size_latest:
-            size_latest[tx["size"]] = tx
+    """평형별 최근 3개월 중앙값으로 mid 업데이트 (특수거래 자동 필터)"""
+    from statistics import median
+
+    # 평형별 전체 거래 모음
+    size_all = {}
+    for tx in all_tx:
+        size_all.setdefault(tx["size"], []).append(tx)
+
+    # 평형별 중앙값 계산 (최근 6개월 기준, 이상치 제거)
+    size_mid = {}
+    for s, txs in size_all.items():
+        recent = sorted(txs, key=lambda x: x["_sort_key"], reverse=True)[:10]
+        prices = [t["price"] for t in recent]
+        if not prices: continue
+        med = median(prices)
+        # 중앙값 ±40% 벗어나는 거래 제외 (특수거래 필터)
+        filtered = [p for p in prices if med * 0.6 <= p <= med * 1.4]
+        if not filtered: filtered = prices  # 필터 후 없으면 전체 사용
+        final_mid = round(median(filtered), 1)
+        # 대표 거래 (필터된 것 중 가장 최근)
+        best_tx = next((t for t in recent if med * 0.6 <= t["price"] <= med * 1.4), recent[0])
+        size_mid[s] = (final_mid, best_tx)
+
     updated = []
     for entry in existing:
         s = entry["size"]
-        latest = size_latest.get(s)
-        if latest:
-            updated.append({**entry, "mid": latest["price"], "low": latest["price"], "high": latest["price"]})
-            print(f"     {s}({latest['_area']}㎡): {latest['price']}억 ({latest['date']})")
+        if s in size_mid:
+            mid, rep = size_mid[s]
+            updated.append({**entry, "mid": mid, "low": mid, "high": mid})
+            print(f"     {s}({rep['_area']}㎡): {mid}억 중앙값 ({rep['date']}, 필터후)")
         else:
             updated.append(entry)
             print(f"     {s}: 실거래 없음 → 기존 유지")
