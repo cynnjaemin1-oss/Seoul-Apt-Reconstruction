@@ -110,8 +110,24 @@ function GapTracker({ complexes, regularComplexes, myHome }) {
   const [brokerRate, setBrokerRate] = useState(0.5);
   const [showDetail, setShowDetail] = useState(false);
 
+  // 리밸런싱 앱에서 동기화된 금융자산 읽기
+  const [financialAssets, setFinancialAssets] = useState(() => {
+    const v = parseFloat(localStorage.getItem('apt_financial_assets') || '0');
+    return isNaN(v) ? 0 : v;
+  });
+  // 포커스될 때마다 최신값 갱신
+  useEffect(() => {
+    const onFocus = () => {
+      const v = parseFloat(localStorage.getItem('apt_financial_assets') || '0');
+      setFinancialAssets(isNaN(v) ? 0 : v);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
   const sellPrice = myHome?.latestPrice || 0;
   const netAsset  = parseFloat((sellPrice - loan).toFixed(1));
+  const totalAvailable = parseFloat((netAsset + financialAssets).toFixed(1));
 
   // 공동명의 고정 (true)
   const GONGDONG = true;
@@ -136,7 +152,7 @@ function GapTracker({ complexes, regularComplexes, myHome }) {
     const ltv3   = SCENARIO2_DISTRICTS.includes(district) ? 0.5 : 0.7;
     const loanS3 = parseFloat((tp * ltv3).toFixed(1));
 
-    const base  = (l) => parseFloat((tp - netAsset - l).toFixed(1));
+    const base  = (l) => parseFloat((tp - totalAvailable - l).toFixed(1));
     const total = (l) => parseFloat((base(l) + extraCost).toFixed(1));
 
     return { acquTax, buyBroker, extraCost, ltv3, loanS1, loanS2, loanS3,
@@ -173,6 +189,24 @@ function GapTracker({ complexes, regularComplexes, myHome }) {
             <div className={`text-[11px] mb-1 ${netAsset >= 0 ? "text-emerald-600" : "text-red-500"}`}>순자산</div>
             <div className={`text-xl font-bold ${netAsset >= 0 ? "text-emerald-700" : "text-red-600"}`}>{netAsset.toFixed(1)}억</div>
             <div className="text-[10px] text-gray-400 mt-0.5">실거래가 − 융자</div>
+          </div>
+        </div>
+        {/* 금융자산 + 총동원가능자산 */}
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="bg-violet-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-violet-500 mb-1">
+              금융자산
+              {financialAssets === 0 && <span className="ml-1 text-gray-300">(BalancePro 연동)</span>}
+            </div>
+            <div className="text-xl font-bold text-violet-700">{financialAssets > 0 ? `${financialAssets.toFixed(1)}억` : "—"}</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">
+              {financialAssets > 0 ? "BalancePro 자동 동기화" : "BalancePro에서 자산 입력 후 동기화"}
+            </div>
+          </div>
+          <div className="bg-indigo-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-indigo-500 mb-1">총 동원 가능 자산</div>
+            <div className="text-xl font-bold text-indigo-700">{totalAvailable.toFixed(1)}억</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">순자산 + 금융자산</div>
           </div>
         </div>
       </div>
