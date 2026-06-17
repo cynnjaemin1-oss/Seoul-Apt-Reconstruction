@@ -8,3 +8,1268 @@
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.24.9/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Noto Sans KR', sans-serif; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .card-hover { transition: all 0.2s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    .blink { animation: blink 1.6s infinite; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:8px;font-family:sans-serif;color:#9ca3af"><div style="font-size:2.5rem">🏗️</div><div style="font-size:0.875rem">로딩 중...</div></div></div>
+
+<script type="text/babel">
+
+const STAGES = [
+  { short: "구역지정",  color: "bg-gray-400"    },
+  { short: "조합설립",  color: "bg-yellow-400"  },
+  { short: "사업시행",  color: "bg-blue-500"    },
+  { short: "관리처분",  color: "bg-violet-500"  },
+  { short: "이주·철거", color: "bg-orange-400"  },
+  { short: "착공",      color: "bg-red-400"     },
+  { short: "준공",      color: "bg-emerald-500" },
+];
+
+const DISTRICT_COLORS = {
+  "강남구": "bg-rose-100 text-rose-700",
+  "서초구": "bg-purple-100 text-purple-700",
+  "송파구": "bg-blue-100 text-blue-700",
+  "성동구": "bg-emerald-100 text-emerald-700",
+  "용산구": "bg-amber-100 text-amber-700",
+  "마포구": "bg-teal-100 text-teal-700",
+  "노원구": "bg-orange-100 text-orange-700",
+};
+
+// 시나리오2 적용 구역 (강남3구 + 용산)
+const SCENARIO2_DISTRICTS = ["강남구", "서초구", "송파구", "용산구"];
+
+const { useState, useMemo, useEffect } = React;
+
+// ──────────────── 세금·비용 계산 함수 ────────────────
+
+// 양도소득세 (1세대 1주택 · 공동명의 지원)
+function calcYangdoTax(buyPrice, sellPrice, holdYears, liveYears, isGongdong) {
+  if (!buyPrice || !sellPrice || sellPrice <= 0) return 0;
+  if (sellPrice <= 12) return 0; // 12억 이하 전액 비과세
+  const profit = sellPrice - buyPrice;
+  if (profit <= 0) return 0;
+
+  const taxableRatio = (sellPrice - 12) / sellPrice; // 12억 초과분 비율
+  // 장기보유특별공제: 보유3년↑+거주2년↑ 충족 시 각 4%/년 (최대 80%)
+  const dedRate = (holdYears >= 3 && liveYears >= 2)
+    ? Math.min(Math.min(holdYears, 10) * 4 + Math.min(liveYears, 10) * 4, 80) / 100
+    : 0;
+
+  const bands = [[0.14,0.06,0],[0.50,0.15,0.14],[0.88,0.24,0.50],[1.50,0.35,0.88],
+                 [3.00,0.38,1.50],[5.00,0.40,3.00],[10.0,0.42,5.00],[Infinity,0.45,10.0]];
+
+  const taxOnProfit = (p) => {
+    let tp = p * taxableRatio * (1 - dedRate);
+    tp = Math.max(0, tp - 0.025); // 기본공제 250만원
+    if (tp <= 0) return 0;
+    let tax = 0, rem = tp;
+    for (const [lim, rate, prev] of bands) {
+      if (rem <= 0) break;
+      const band = lim === Infinity ? rem : Math.min(rem, lim - prev);
+      tax += Math.min(rem, band) * rate;
+      rem -= band;
+    }
+    return tax;
+  };
+
+  // 공동명의: 차익 50/50 분할 후 각자 계산 → 합산 (누진세 절감 효과)
+  const totalTax = isGongdong
+    ? taxOnProfit(profit / 2) * 2
+    : taxOnProfit(profit);
+
+  return Math.round(totalTax * 1.1 * 10) / 10; // 지방소득세 10% 포함
+}
+
+// 취득세 (1주택 갈아타기)
+function calcAcquTax(price) {
+  if (price <= 6) return Math.round(price * 0.01 * 10) / 10;
+  if (price <= 9) return Math.round(price * (((price - 6) * (2/3) + 1) / 100) * 10) / 10;
+  return Math.round(price * 0.03 * 10) / 10;
+}
+
+// 중개수수료
+function calcBroker(price, ratePct) {
+  return Math.round(price * (ratePct / 100) * 10) / 10;
+}
+
+// ──────────────── 갭 트래커 ────────────────
+function GapTracker({ complexes, regularComplexes, myHome }) {
+  const [loan,       setLoan]       = useState(myHome?.defaultLoan || 8.5);
+  const [buyPrice,   setBuyPrice]   = useState(13.9);  // 취득가액 (스크린샷 기준)
+  const [holdYears,  setHoldYears]  = useState(7);     // 보유기간 (갈아타기 시점 가정)
+  const [liveYears,  setLiveYears]  = useState(2);     // 거주기간 (요건 충족 최소)
+  const [brokerRate, setBrokerRate] = useState(0.5);
+  const [showDetail, setShowDetail] = useState(false);
+
+  // 리밸런싱 앱에서 동기화된 금융자산 읽기
+  const [financialAssets, setFinancialAssets] = useState(() => {
+    const v = parseFloat(localStorage.getItem('apt_financial_assets') || '0');
+    return isNaN(v) ? 0 : v;
+  });
+  // 포커스될 때마다 최신값 갱신
+  useEffect(() => {
+    const onFocus = () => {
+      const v = parseFloat(localStorage.getItem('apt_financial_assets') || '0');
+      setFinancialAssets(isNaN(v) ? 0 : v);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  const sellPrice = myHome?.latestPrice || 0;
+  const netAsset  = parseFloat((sellPrice - loan).toFixed(1));
+  const totalAvailable = parseFloat((netAsset + financialAssets).toFixed(1));
+
+  // 공동명의 고정 (true)
+  const GONGDONG = true;
+
+  const yangdoTax  = calcYangdoTax(buyPrice, sellPrice, holdYears, liveYears, GONGDONG);
+  const sellBroker = sellPrice > 0 ? calcBroker(sellPrice, brokerRate) : 0;
+  const sellCost   = parseFloat((yangdoTax + sellBroker).toFixed(1));
+
+  const getRef = (c) => {
+    const p = c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1];
+    return p?.mid || 0;
+  };
+
+  // 갭 계산 — 분담금 제외
+  const calcAllGaps = (tp, district) => {
+    const acquTax   = calcAcquTax(tp);
+    const buyBroker = calcBroker(tp, brokerRate);
+    const extraCost = parseFloat((sellCost + acquTax + buyBroker).toFixed(1)); // 분담금 미포함
+
+    const loanS1 = tp >= 25 ? 2 : 0;
+    const loanS2 = parseFloat((tp * 0.4).toFixed(1));
+    const ltv3   = SCENARIO2_DISTRICTS.includes(district) ? 0.5 : 0.7;
+    const loanS3 = parseFloat((tp * ltv3).toFixed(1));
+
+    const base  = (l) => parseFloat((tp - totalAvailable - l).toFixed(1));
+    const total = (l) => parseFloat((base(l) + extraCost).toFixed(1));
+
+    return { acquTax, buyBroker, extraCost, ltv3, loanS1, loanS2, loanS3,
+             base1: base(loanS1), base2: base(loanS2), base3: base(loanS3),
+             tot1: total(loanS1), tot2: total(loanS2), tot3: total(loanS3) };
+  };
+
+  const sorted = [...complexes].sort((a, b) => getRef(a) - getRef(b));
+  const gapColor = (g) => g <= 0 ? "text-emerald-600" : g <= 5 ? "text-amber-500" : "text-red-500";
+  const fmt = (v) => v > 0 ? `+${v}억` : `${v}억`;
+  const dedPct = (holdYears >= 3 && liveYears >= 2)
+    ? Math.min(Math.min(holdYears,10)*4 + Math.min(liveYears,10)*4, 80) : 0;
+
+  return (
+    <div className="space-y-4">
+
+      {/* ── 내 자산 ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="text-sm font-bold text-gray-700 mb-3">🏠 내 자산 현황</div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-gray-500 mb-1">금호파크힐스 25평</div>
+            <div className="text-xl font-bold text-gray-900">{sellPrice > 0 ? `${sellPrice}억` : "—"}</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">{myHome?.latestDate ? `${myHome.latestDate} 실거래` : "수집 중"}</div>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-blue-500 mb-1">현재 융자</div>
+            <div className="text-xl font-bold text-blue-700">{loan.toFixed(1)}억</div>
+            <input type="range" min="0" max="15" step="0.1" value={loan}
+              onChange={e => setLoan(parseFloat(e.target.value))}
+              className="w-full mt-1.5 accent-blue-500" />
+          </div>
+          <div className={`rounded-xl p-3 text-center ${netAsset >= 0 ? "bg-emerald-50" : "bg-red-50"}`}>
+            <div className={`text-[11px] mb-1 ${netAsset >= 0 ? "text-emerald-600" : "text-red-500"}`}>순자산</div>
+            <div className={`text-xl font-bold ${netAsset >= 0 ? "text-emerald-700" : "text-red-600"}`}>{netAsset.toFixed(1)}억</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">실거래가 − 융자</div>
+          </div>
+        </div>
+        {/* 금융자산 + 총동원가능자산 */}
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="bg-violet-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-violet-500 mb-1">
+              금융자산
+              {financialAssets === 0 && <span className="ml-1 text-gray-300">(BalancePro 연동)</span>}
+            </div>
+            <div className="text-xl font-bold text-violet-700">{financialAssets > 0 ? `${financialAssets.toFixed(1)}억` : "—"}</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">
+              {financialAssets > 0 ? "BalancePro 자동 동기화" : "BalancePro에서 자산 입력 후 동기화"}
+            </div>
+          </div>
+          <div className="bg-indigo-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-indigo-500 mb-1">총 동원 가능 자산</div>
+            <div className="text-xl font-bold text-indigo-700">{totalAvailable.toFixed(1)}억</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">순자산 + 금융자산</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 비용 설정 ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <button onClick={() => setShowDetail(!showDetail)}
+          className="w-full px-4 py-3 flex items-center justify-between text-sm font-bold text-gray-700 hover:bg-gray-50">
+          <span>💸 비용 설정</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-normal text-orange-600">양도세 {yangdoTax}억 · 매도중개비 {sellBroker}억</span>
+            <span className="text-gray-400 text-xs">{showDetail ? "▲" : "▼"}</span>
+          </div>
+        </button>
+        {showDetail && (
+          <div className="px-4 pb-4 border-t border-gray-100 space-y-4 pt-3">
+
+            {/* 양도세 설정 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="text-xs font-semibold text-gray-600">📤 양도소득세 설정</div>
+                <div className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">공동명의 적용</div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <div className="text-[11px] text-gray-500 mb-1">취득가액</div>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="1" max="30" step="0.5" value={buyPrice}
+                      onChange={e => setBuyPrice(parseFloat(e.target.value) || 0)}
+                      className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
+                    <span className="text-xs text-gray-400 shrink-0">억</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-gray-500 mb-1">보유기간 (매도 시점)</div>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="30" step="1" value={holdYears}
+                      onChange={e => setHoldYears(parseInt(e.target.value) || 0)}
+                      className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
+                    <span className="text-xs text-gray-400 shrink-0">년</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-gray-500 mb-1">거주기간</div>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="30" step="1" value={liveYears}
+                      onChange={e => setLiveYears(parseInt(e.target.value) || 0)}
+                      className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
+                    <span className="text-xs text-gray-400 shrink-0">년</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 bg-orange-50 rounded-xl p-3 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                <div className="text-gray-500">양도소득세 (지방세 포함)</div>
+                <div className="font-bold text-orange-700 text-right">{yangdoTax}억</div>
+                <div className="text-gray-400">
+                  {sellPrice <= 12 ? "12억 이하 → 비과세" :
+                   dedPct > 0 ? `장기보유공제 ${dedPct}% · 공동명의 분할` : "장기보유공제 미적용"}
+                </div>
+                <div className="text-gray-400 text-right">
+                  {sellPrice > 12 && `양도차익 ${parseFloat((sellPrice - buyPrice).toFixed(1))}억`}
+                </div>
+              </div>
+            </div>
+
+            {/* 중개비율 */}
+            <div className="border-t border-gray-100 pt-3">
+              <div className="text-xs font-semibold text-gray-600 mb-2">⚙️ 중개비율 (매도·매수 동일)</div>
+              <div className="flex items-center gap-3">
+                <input type="range" min="0.3" max="0.9" step="0.05" value={brokerRate}
+                  onChange={e => setBrokerRate(parseFloat(e.target.value))}
+                  className="flex-1 accent-gray-500" />
+                <span className="text-xs font-bold text-gray-700 w-10 text-right">{brokerRate}%</span>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 rounded-xl p-3 text-[10px] text-blue-600 space-y-0.5">
+              <div>※ 분담금은 갭 계산에서 제외됩니다. 테이블에 참고용으로만 표시됩니다.</div>
+              <div>※ 공동명의: 양도차익을 50/50 분할하여 각자 누진세 적용 후 합산</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 시나리오 설명 ── */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-violet-50 rounded-2xl p-3">
+          <div className="text-xs font-bold text-violet-700 mb-1">시나리오 1</div>
+          <div className="text-[11px] text-violet-600">현행 규제<br/><span className="font-semibold text-violet-800">25억↑ 대출 2억</span></div>
+        </div>
+        <div className="bg-amber-50 rounded-2xl p-3">
+          <div className="text-xs font-bold text-amber-700 mb-1">시나리오 2</div>
+          <div className="text-[11px] text-amber-600">규제 완화<br/><span className="font-semibold text-amber-800">LTV 40%</span></div>
+        </div>
+        <div className="bg-emerald-50 rounded-2xl p-3">
+          <div className="text-xs font-bold text-emerald-700 mb-1">시나리오 3</div>
+          <div className="text-[11px] text-emerald-600">강남3구·용산 50%<br/><span className="font-semibold text-emerald-800">그 외 LTV 70%</span></div>
+        </div>
+      </div>
+
+      {/* ── 갭 테이블 ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="text-sm font-bold text-gray-700 mb-1">📊 단지별 실질 갭 분석</div>
+        <div className="text-[11px] text-gray-400 mb-3">84㎡ 기준 · 양도세+취득세+중개비 포함 · 분담금 별도 · 단위: 억원</div>
+
+        {sellPrice === 0 && (
+          <div className="bg-orange-50 rounded-xl px-3 py-2 mb-3 text-xs text-orange-600">
+            ⚠️ 금호파크힐스 실거래가 수집 전입니다. Actions 실행 후 자동 반영됩니다.
+          </div>
+        )}
+
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-gray-400 border-b border-gray-100">
+                <th className="text-left py-2 pl-1 font-medium">단지</th>
+                <th className="text-right py-2 font-medium">시세</th>
+                <th className="text-right py-2 font-medium text-gray-400">부대비용</th>
+                <th className="text-right py-2 font-medium">
+                  <div className="text-violet-600">S1</div>
+                  <div className="text-[9px] font-normal text-gray-300">현행</div>
+                </th>
+                <th className="text-right py-2 font-medium">
+                  <div className="text-amber-600">S2</div>
+                  <div className="text-[9px] font-normal text-gray-300">LTV40%</div>
+                </th>
+                <th className="text-right py-2 font-medium">
+                  <div className="text-emerald-600">S3</div>
+                  <div className="text-[9px] font-normal text-gray-300">50/70%</div>
+                </th>
+                <th className="text-right py-2 pr-1 font-medium text-gray-300">
+                  <div>분담금</div>
+                  <div className="text-[9px] font-normal">참고용</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(c => {
+                const tp = getRef(c);
+                const r  = calcAllGaps(tp, c.district);
+                const contribMid = parseFloat(((c.contribution.low + c.contribution.high) / 2).toFixed(1));
+                return (
+                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-2.5 pl-1">
+                      <div className="font-semibold text-gray-800">{c.name}</div>
+                      <div className="text-[10px] text-gray-400">{c.district}</div>
+                    </td>
+                    <td className="text-right py-2.5 font-bold text-gray-700">{tp}억</td>
+                    <td className="text-right py-2.5">
+                      <div className="font-semibold text-gray-500">+{r.extraCost}억</div>
+                      <div className="text-[9px] text-gray-300">취{r.acquTax}+중{r.buyBroker}+양{yangdoTax}</div>
+                    </td>
+                    <td className="text-right py-2.5">
+                      <div className={`font-bold ${gapColor(r.tot1)}`}>{fmt(r.tot1)}</div>
+                      <div className={`text-[9px] opacity-50 ${gapColor(r.base1)}`}>{fmt(r.base1)}</div>
+                    </td>
+                    <td className="text-right py-2.5">
+                      <div className={`font-bold ${gapColor(r.tot2)}`}>{fmt(r.tot2)}</div>
+                      <div className={`text-[9px] opacity-50 ${gapColor(r.base2)}`}>{fmt(r.base2)}</div>
+                    </td>
+                    <td className="text-right py-2.5">
+                      <div className={`font-bold ${gapColor(r.tot3)}`}>{fmt(r.tot3)}</div>
+                      <div className="text-[9px] text-gray-300">LTV{(r.ltv3*100).toFixed(0)}%</div>
+                    </td>
+                    <td className="text-right py-2.5 pr-1">
+                      <div className="text-gray-400">{c.contribution.low}~{c.contribution.high}억</div>
+                      <div className="text-[9px] text-gray-300">중간 {contribMid}억</div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* ── 일반 매물 구분선 ── */}
+              {regularComplexes && regularComplexes.length > 0 && (
+                <tr>
+                  <td colSpan={7} className="py-2 pl-1">
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-gray-100" />
+                      <span className="text-[10px] font-semibold text-indigo-400 shrink-0">🏠 일반 매물 (분담금·재초환 없음)</span>
+                      <div className="h-px flex-1 bg-gray-100" />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {regularComplexes && [...regularComplexes].sort((a,b) => getRef(a)-getRef(b)).map(c => {
+                const tp = getRef(c);
+                const r  = calcAllGaps(tp, c.district);
+                return (
+                  <tr key={c.id} className="border-b border-gray-50 hover:bg-indigo-50">
+                    <td className="py-2.5 pl-1">
+                      <div className="font-semibold text-gray-800">{c.name}</div>
+                      <div className="flex gap-1 mt-0.5">
+                        {c.tags?.map(t => <span key={t} className="text-[9px] text-indigo-500">{t}</span>)}
+                      </div>
+                    </td>
+                    <td className="text-right py-2.5 font-bold text-gray-700">{tp}억</td>
+                    <td className="text-right py-2.5">
+                      <div className="font-semibold text-gray-500">+{r.extraCost}억</div>
+                      <div className="text-[9px] text-gray-300">취{r.acquTax}+중{r.buyBroker}+양{yangdoTax}</div>
+                    </td>
+                    <td className="text-right py-2.5">
+                      <div className={`font-bold ${gapColor(r.tot1)}`}>{fmt(r.tot1)}</div>
+                      <div className={`text-[9px] opacity-50 ${gapColor(r.base1)}`}>{fmt(r.base1)}</div>
+                    </td>
+                    <td className="text-right py-2.5">
+                      <div className={`font-bold ${gapColor(r.tot2)}`}>{fmt(r.tot2)}</div>
+                      <div className={`text-[9px] opacity-50 ${gapColor(r.base2)}`}>{fmt(r.base2)}</div>
+                    </td>
+                    <td className="text-right py-2.5">
+                      <div className={`font-bold ${gapColor(r.tot3)}`}>{fmt(r.tot3)}</div>
+                      <div className="text-[9px] text-gray-300">LTV{(r.ltv3*100).toFixed(0)}%</div>
+                    </td>
+                    <td className="text-right py-2.5 pr-1 text-gray-300 text-[10px]">해당없음</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-3 bg-gray-50 rounded-xl p-3 text-[10px] text-gray-400 space-y-0.5">
+          <div>• 부대비용 = 양도소득세({yangdoTax}억) + 매도중개비({sellBroker}억) + 취득세(시세×3%) + 매수중개비(시세×{brokerRate}%)</div>
+          <div>• 갭 큰 숫자 = 부대비용 포함 실질 갭 · 작은 숫자(흐림) = 순수 가격 갭</div>
+          <div>• 분담금은 입주 시점 추가 납부 — 갭 계산에 미포함</div>
+          <div className="text-gray-300">※ 양도세: 1세대1주택·공동명의·실거주2년 충족 기준. 실제 세액은 세무사 확인 필요</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────── 기존 컴포넌트 ────────────────
+function StageProgress({ stage, stageStatus }) {
+  return (
+    <div className="flex items-center gap-0.5 mt-5 mb-0.5">
+      {STAGES.map((s, i) => {
+        const done   = i < stage || (i === stage && stageStatus === "completed");
+        const active = i === stage && stageStatus === "in_progress";
+        return (
+          <React.Fragment key={i}>
+            <div className={`relative flex-1 h-2 rounded-full transition-all ${done ? s.color : active ? s.color + " opacity-50 blink" : "bg-gray-200"}`}>
+              {i === stage && (
+                <span className={`absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold whitespace-nowrap ${stageStatus === "completed" ? "text-emerald-600" : "text-blue-600 blink"}`}>
+                  {stageStatus === "completed" ? "✓완료" : "▼진행"}
+                </span>
+              )}
+            </div>
+            {i < STAGES.length - 1 && <div className={`w-0.5 h-2 ${i < stage ? s.color : "bg-gray-200"}`} />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function StageBadge({ stage, stageStatus }) {
+  const s = STAGES[stage];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${s.color} text-white`}>
+      {stageStatus === "completed" ? "✓" : "⏳"} {s.short} {stageStatus === "completed" ? "완료" : "진행중"}
+    </span>
+  );
+}
+
+function PriceBySizeTable({ priceBySize, priceLastUpdated }) {
+  return (
+    <div className="mt-3">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-xs font-semibold text-gray-600">💹 평형별 최근 실거래가</span>
+        <span className="text-[10px] text-orange-500 font-medium">기준 {priceLastUpdated} ※ 참고용</span>
+      </div>
+      <div className="rounded-xl overflow-hidden border border-gray-100">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 text-gray-400">
+              <th className="text-left px-3 py-1.5 font-medium">평형</th>
+              <th className="text-right px-3 py-1.5 font-medium">최근 실거래가</th>
+            </tr>
+          </thead>
+          <tbody>
+            {priceBySize.map((p, i) => (
+              <tr key={i} className={i > 0 ? "border-t border-gray-100" : ""}>
+                <td className="px-3 py-2 font-semibold text-gray-800">{p.size} <span className="text-gray-400 font-normal">({p.pyeong}평)</span></td>
+                <td className="text-right px-3 py-2 font-bold text-blue-700">{p.mid}억</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-gray-400 mt-1 text-right">최신 시세는 호갱노노에서 직접 확인</p>
+    </div>
+  );
+}
+
+function AllocationTable({ allocation }) {
+  return (
+    <div className="mt-3 bg-indigo-50 rounded-xl p-3">
+      <div className="text-xs font-semibold text-indigo-700 mb-2">🏠 예상 배정 평형 가이드</div>
+      {allocation.map((a, i) => (
+        <div key={i} className="flex items-center justify-between">
+          <span className="text-xs text-indigo-600">현재 <strong>{a.buySize}</strong> 매입 시</span>
+          <span className="text-xs font-bold text-indigo-900">신규 {a.allocRange} 배정 가능</span>
+        </div>
+      ))}
+      <p className="text-[9px] text-indigo-400 mt-2">※ 비례율·권리가액에 따라 달라짐</p>
+    </div>
+  );
+}
+
+function MilestoneSection({ milestones, currentStage, stageStatus }) {
+  const shown = milestones.filter(m => m.stage > currentStage || (m.stage === currentStage && stageStatus === "in_progress"));
+  if (!shown.length) return null;
+  return (
+    <div className="mt-3">
+      <div className="text-xs font-semibold text-gray-600 mb-2">📅 향후 예상 일정</div>
+      <div className="space-y-1.5">
+        {shown.map((m, i) => (
+          <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${STAGES[m.stage].color}`} />
+              <span className="text-xs text-gray-700">{STAGES[m.stage].short}</span>
+            </div>
+            <span className="text-xs text-gray-500">{m.estimated} <span className="text-gray-400">(예상)</span></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ComplexCard({ c, expanded, onToggle }) {
+  const distColor = DISTRICT_COLORS[c.district] || "bg-gray-100 text-gray-700";
+  const heroPrice = c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1];
+  return (
+    <div className={`bg-white rounded-2xl border border-gray-100 card-hover overflow-hidden ${expanded ? "ring-2 ring-blue-400" : ""}`}>
+      <div className="p-4 cursor-pointer" onClick={onToggle}>
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${distColor}`}>{c.district} {c.dong}</span>
+              <StageBadge stage={c.stage} stageStatus={c.stageStatus} />
+            </div>
+            <h3 className="text-base font-bold text-gray-900">{c.name}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{c.buildYear}년 준공 · {c.totalUnits.toLocaleString()}세대 → {c.newUnits.toLocaleString()}세대 (예정)</p>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-xl font-bold text-gray-900">{heroPrice.mid}<span className="text-sm font-normal text-gray-400">억</span></div>
+            <div className="text-[10px] text-gray-400">{heroPrice.size} 최근거래</div>
+          </div>
+        </div>
+        <StageProgress stage={c.stage} stageStatus={c.stageStatus} />
+        <div className="flex justify-between mt-1">
+          {STAGES.map((s, i) => (
+            <span key={i} className={`text-[8px] text-center flex-1 ${i === c.stage ? c.stageStatus === "completed" ? "text-emerald-600 font-bold" : "text-blue-600 font-bold" : "text-gray-400"}`}>{s.short}</span>
+          ))}
+        </div>
+        <div className="flex gap-1.5 mt-3 overflow-x-auto scrollbar-hide pb-0.5">
+          {c.priceBySize.map((p, i) => (
+            <div key={i} className="shrink-0 bg-gray-50 rounded-xl px-2.5 py-1.5 text-center">
+              <div className="text-[10px] text-gray-500">{p.size}</div>
+              <div className="text-sm font-bold text-blue-700">{p.mid}<span className="text-[10px] font-normal text-gray-400">억</span></div>
+            </div>
+          ))}
+          <div className="shrink-0 bg-gray-50 rounded-xl px-2.5 py-1.5 text-center">
+            <div className="text-[10px] text-gray-500">매물</div>
+            <div className="text-sm font-bold text-gray-700">{c.listings}<span className="text-[10px] font-normal text-gray-400">건</span></div>
+          </div>
+          <div className="shrink-0 bg-blue-50 rounded-xl px-2.5 py-1.5 text-center">
+            <div className="text-[10px] text-blue-500">분담금</div>
+            <div className="text-sm font-bold text-blue-700">{c.contribution.low}~{c.contribution.high}<span className="text-[10px] font-normal">억</span></div>
+          </div>
+        </div>
+        <div className="text-center mt-2 text-[10px] text-gray-400">{expanded ? "▲ 접기" : "▼ 상세 보기"}</div>
+      </div>
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 pb-5">
+          <PriceBySizeTable priceBySize={c.priceBySize} priceLastUpdated={c.priceLastUpdated} />
+          <div className="mt-4">
+            <div className="text-xs font-semibold text-gray-600 mb-2">📋 최근 실거래</div>
+            <div className="space-y-1.5">
+              {c.recentTx.map((tx, i) => (
+                <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-400">{tx.date}</span>
+                  <span className="text-xs text-gray-600">{tx.size} · {tx.floor}</span>
+                  <span className="text-sm font-bold text-gray-900">{tx.price}억</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <AllocationTable allocation={c.allocation} />
+          <div className="mt-3 bg-blue-50 rounded-xl p-3">
+            <div className="text-xs font-semibold text-blue-700 mb-1">💰 예상 분담금</div>
+            <div className="text-lg font-bold text-blue-800">{c.contribution.low}억 ~ {c.contribution.high}억</div>
+            <div className="text-[10px] text-blue-600 mt-0.5">{c.contribution.note}</div>
+          </div>
+          <MilestoneSection milestones={c.milestones} currentStage={c.stage} stageStatus={c.stageStatus} />
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">현 단계</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{c.stageDate}</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">일반분양 비율</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{(c.generalSaleRatio * 100).toFixed(0)}%</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">신규 세대</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{c.newUnits.toLocaleString()}세대</div>
+            </div>
+          </div>
+          <div className="mt-3 bg-amber-50 rounded-xl p-3">
+            <div className="text-xs text-amber-800 leading-relaxed">📌 {c.note}</div>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <a href={c.links.naver} target="_blank" rel="noopener noreferrer" className="flex-1 text-center text-[11px] py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors">네이버 부동산</a>
+            <a href={c.links.hogangnono} target="_blank" rel="noopener noreferrer" className="flex-1 text-center text-[11px] py-2 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">호갱노노</a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, sub, color }) {
+  return (
+    <div className={`rounded-2xl p-4 ${color}`}>
+      <div className="text-xs font-medium opacity-70 mb-1">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
+      {sub && <div className="text-xs opacity-60 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function PipelineView({ complexes, onSelect, selectedId }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="text-sm font-bold text-gray-700 mb-4">📊 사업 단계별 현황</div>
+      <div className="space-y-3">
+        {STAGES.map((s, idx) => {
+          const items = complexes.filter(c => c.stage === idx);
+          if (!items.length) return null;
+          return (
+            <div key={idx} className="flex items-start gap-3">
+              <div className={`shrink-0 w-20 text-center text-[11px] font-semibold px-2 py-1 rounded-full ${s.color} text-white mt-0.5`}>{s.short}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {items.map(c => (
+                  <button key={c.id} onClick={() => onSelect(c.id)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-all ${selectedId === c.id ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-400"}`}>
+                    {c.name} <span className="ml-1 opacity-60">{c.stageStatus === "completed" ? "✓" : "⏳"}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PriceTable({ complexes }) {
+  const sorted = [...complexes].sort((a, b) => {
+    const aP = a.priceBySize.find(p => p.size === "84㎡") || a.priceBySize[a.priceBySize.length - 1];
+    const bP = b.priceBySize.find(p => p.size === "84㎡") || b.priceBySize[b.priceBySize.length - 1];
+    return bP.mid - aP.mid;
+  });
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="text-sm font-bold text-gray-700 mb-3">💹 단지별 시세 비교 (억원)</div>
+      <div className="overflow-x-auto scrollbar-hide">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-gray-400 border-b border-gray-100">
+              <th className="text-left py-2 font-medium">단지</th>
+              <th className="text-right py-2 font-medium">42·59㎡</th>
+              <th className="text-right py-2 font-medium">84㎡</th>
+              <th className="text-right py-2 font-medium">105㎡+</th>
+              <th className="text-right py-2 font-medium">분담금</th>
+              <th className="text-right py-2 font-medium">매물</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(c => {
+              const small = c.priceBySize.find(p => ["42㎡","59㎡"].includes(p.size));
+              const mid84 = c.priceBySize.find(p => p.size === "84㎡");
+              const large = c.priceBySize.find(p => ["105㎡","126㎡"].includes(p.size));
+              return (
+                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="py-2 font-medium text-gray-800">
+                    <div>{c.name}</div>
+                    <div className="text-[10px] text-gray-400">{c.district}</div>
+                  </td>
+                  <td className="text-right py-2 text-gray-600">{small ? `${small.mid}억` : "—"}</td>
+                  <td className="text-right py-2 font-bold text-blue-700">{mid84 ? `${mid84.mid}억` : "—"}</td>
+                  <td className="text-right py-2 text-gray-600">{large ? `${large.mid}억` : "—"}</td>
+                  <td className="text-right py-2 text-blue-600">{c.contribution.low}~{c.contribution.high}억</td>
+                  <td className="text-right py-2 text-gray-500">{c.listings}건</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────── 일반 매물 카드 ────────────────
+const TAG_STYLE = {
+  "학군":   "bg-blue-100 text-blue-700",
+  "실거주":  "bg-green-100 text-green-700",
+  "시세차익":"bg-amber-100 text-amber-700",
+};
+
+function RegularCard({ c, expanded, onToggle, gapInfo }) {
+  const distColor = DISTRICT_COLORS[c.district] || "bg-gray-100 text-gray-700";
+  const hero = c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length - 1];
+  return (
+    <div className={`bg-white rounded-2xl border border-gray-100 card-hover overflow-hidden ${expanded ? "ring-2 ring-indigo-400" : ""}`}>
+      <div className="p-4 cursor-pointer" onClick={onToggle}>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${distColor}`}>{c.district} {c.dong}</span>
+              {c.tags.map(t => <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${TAG_STYLE[t]}`}>{t}</span>)}
+            </div>
+            <h3 className="text-base font-bold text-gray-900">{c.name}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{c.buildYear}년 준공 · {c.totalUnits.toLocaleString()}세대 {c.school && `· ${c.school}`}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-xl font-bold text-gray-900">{hero.mid}<span className="text-sm font-normal text-gray-400">억</span></div>
+            <div className="text-[10px] text-gray-400">84㎡ 최근거래</div>
+          </div>
+        </div>
+        <div className="flex gap-1.5 mt-2 overflow-x-auto scrollbar-hide pb-0.5">
+          {c.priceBySize.map((p, i) => (
+            <div key={i} className="shrink-0 bg-gray-50 rounded-xl px-2.5 py-1.5 text-center">
+              <div className="text-[10px] text-gray-500">{p.size}</div>
+              <div className="text-sm font-bold text-indigo-700">{p.mid}<span className="text-[10px] font-normal text-gray-400">억</span></div>
+            </div>
+          ))}
+          <div className="shrink-0 bg-gray-50 rounded-xl px-2.5 py-1.5 text-center">
+            <div className="text-[10px] text-gray-500">전세</div>
+            <div className="text-sm font-bold text-gray-600">{c.jeonsePrice}<span className="text-[10px] font-normal text-gray-400">억</span></div>
+          </div>
+
+          {gapInfo && (
+            <div className={`shrink-0 rounded-xl px-2.5 py-1.5 text-center ${gapInfo.tot1 <= 0 ? "bg-emerald-50" : gapInfo.tot1 <= 5 ? "bg-amber-50" : "bg-red-50"}`}>
+              <div className="text-[10px] text-gray-500">S1 갭</div>
+              <div className={`text-sm font-bold ${gapInfo.tot1 <= 0 ? "text-emerald-700" : gapInfo.tot1 <= 5 ? "text-amber-600" : "text-red-600"}`}>
+                {gapInfo.tot1 > 0 ? `+${gapInfo.tot1}` : gapInfo.tot1}<span className="text-[10px] font-normal">억</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="text-center mt-2 text-[10px] text-gray-400">{expanded ? "▲ 접기" : "▼ 상세 보기"}</div>
+      </div>
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 pb-5">
+          <div className="mt-3">
+            <div className="text-xs font-semibold text-gray-600 mb-2">📋 최근 실거래</div>
+            <div className="space-y-1.5">
+              {c.recentTx.map((tx, i) => (
+                <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-400">{tx.date}</span>
+                  <span className="text-xs text-gray-600">{tx.size} · {tx.floor}</span>
+                  <span className="text-sm font-bold text-gray-900">{tx.price}억</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-gray-400">준공</div>
+              <div className="text-xs font-semibold text-gray-700 mt-0.5">{c.buildYear}년</div>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] text-blue-400">전세가</div>
+              <div className="text-xs font-semibold text-blue-700 mt-0.5">{c.jeonsePrice}억</div>
+            </div>
+          </div>
+          {gapInfo && (
+            <div className="mt-3 bg-gray-50 rounded-xl p-3">
+              <div className="text-xs font-semibold text-gray-600 mb-2">💰 갭 분석 (내 자산 기준)</div>
+              <div className="grid grid-cols-3 gap-2">
+                {[["S1 현행", gapInfo.tot1, gapInfo.base1], ["S2 LTV40%", gapInfo.tot2, gapInfo.base2], ["S3 50/70%", gapInfo.tot3, gapInfo.base3]].map(([label, tot, base]) => (
+                  <div key={label} className="text-center">
+                    <div className="text-[10px] text-gray-400">{label}</div>
+                    <div className={`text-sm font-bold ${tot <= 0 ? "text-emerald-600" : tot <= 5 ? "text-amber-500" : "text-red-500"}`}>
+                      {tot > 0 ? `+${tot}억` : `${tot}억`}
+                    </div>
+                    <div className="text-[9px] text-gray-300">{base > 0 ? `+${base}` : base}억 (기본)</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mt-3 bg-amber-50 rounded-xl p-3">
+            <div className="text-xs text-amber-800 leading-relaxed">📌 {c.note}</div>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <a href={c.links.naver} target="_blank" rel="noopener noreferrer" className="flex-1 text-center text-[11px] py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600">네이버 부동산</a>
+            <a href={c.links.hogangnono} target="_blank" rel="noopener noreferrer" className="flex-1 text-center text-[11px] py-2 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600">호갱노노</a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────── 일반 매물 비교표 ────────────────
+function RegularPriceTable({ complexes, gapMap }) {
+  const sorted = [...complexes].sort((a, b) => {
+    const aP = a.priceBySize.find(p => p.size === "84㎡") || a.priceBySize[a.priceBySize.length-1];
+    const bP = b.priceBySize.find(p => p.size === "84㎡") || b.priceBySize[b.priceBySize.length-1];
+    return bP.mid - aP.mid;
+  });
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="text-sm font-bold text-gray-700 mb-3">💹 일반 매물 비교표</div>
+      <div className="overflow-x-auto scrollbar-hide">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-gray-400 border-b border-gray-100">
+              <th className="text-left py-2 font-medium">단지</th>
+              <th className="text-right py-2 font-medium">59㎡</th>
+              <th className="text-right py-2 font-medium">84㎡</th>
+              <th className="text-right py-2 font-medium">120㎡+</th>
+              <th className="text-right py-2 font-medium">전세</th>
+              <th className="text-right py-2 font-medium text-violet-500">S1 갭</th>
+              <th className="text-right py-2 pr-1 font-medium text-emerald-500">S3 갭</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(c => {
+              const p59  = c.priceBySize.find(p => p.size === "59㎡");
+              const p84  = c.priceBySize.find(p => p.size === "84㎡");
+              const p120 = c.priceBySize.find(p => ["120㎡","126㎡"].includes(p.size));
+              const g = gapMap[c.id];
+              const gc = (v) => v <= 0 ? "text-emerald-600" : v <= 5 ? "text-amber-500" : "text-red-500";
+              return (
+                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="py-2">
+                    <div className="font-semibold text-gray-800">{c.name}</div>
+                    <div className="flex gap-1 mt-0.5">
+                      {c.tags.map(t => <span key={t} className={`text-[9px] px-1 py-0.5 rounded ${TAG_STYLE[t]}`}>{t}</span>)}
+                    </div>
+                  </td>
+                  <td className="text-right py-2 text-gray-600">{p59 ? `${p59.mid}억` : "—"}</td>
+                  <td className="text-right py-2 font-bold text-indigo-700">{p84 ? `${p84.mid}억` : "—"}</td>
+                  <td className="text-right py-2 text-gray-600">{p120 ? `${p120.mid}억` : "—"}</td>
+                  <td className="text-right py-2 text-blue-600">{c.jeonsePrice}억</td>
+                  <td className={`text-right py-2 font-bold ${g ? gc(g.tot1) : "text-gray-300"}`}>{g ? (g.tot1>0?`+${g.tot1}억`:`${g.tot1}억`) : "—"}</td>
+                  <td className={`text-right py-2 pr-1 font-bold ${g ? gc(g.tot3) : "text-gray-300"}`}>{g ? (g.tot3>0?`+${g.tot3}억`:`${g.tot3}억`) : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────── 재건축 vs 일반매물 비교 뷰 ────────────────
+function CompareView({ complexes, regularComplexes, myHome, gapSettings }) {
+  const [reconId,  setReconId]  = useState(complexes[0]?.id || null);
+  const [regId,    setRegId]    = useState(regularComplexes[0]?.id || null);
+  const [scenario, setScenario] = useState("s2");
+
+  const recon = complexes.find(c => c.id === reconId);
+  const reg   = regularComplexes.find(c => c.id === regId);
+
+  const { netAsset, yangdoTax, sellBroker, brokerRate } = gapSettings;
+
+  const getRef = (c) => (c?.priceBySize.find(p => p.size === "84㎡") || c?.priceBySize[c.priceBySize.length-1])?.mid || 0;
+
+  const calcGap = (c, scen) => {
+    if (!c) return null;
+    const tp = getRef(c);
+    const acquTax   = tp > 9 ? tp*0.03 : tp > 6 ? tp*((tp-6)*(2/3)+1)/100 : tp*0.01;
+    const buyBroker = parseFloat((tp*(brokerRate/100)).toFixed(1));
+    const extra     = parseFloat((yangdoTax + sellBroker + acquTax + buyBroker).toFixed(1));
+    const loanMap   = {
+      s1: tp >= 25 ? 2 : 0,
+      s2: parseFloat((tp*0.4).toFixed(1)),
+      s3: parseFloat((tp * (SCENARIO2_DISTRICTS.includes(c.district) ? 0.5 : 0.7)).toFixed(1)),
+    };
+    const loan = loanMap[scen];
+    const base = parseFloat((tp - netAsset - loan).toFixed(1));
+    const tot  = parseFloat((base + extra).toFixed(1));
+    return { tp, acquTax: parseFloat(acquTax.toFixed(1)), buyBroker, extra, loan, base, tot };
+  };
+
+  const rg = calcGap(recon, scenario);
+  const gg = calcGap(reg,   scenario);
+  const scenLabel = {s1:"현행(2억)",s2:"LTV 40%",s3:"LTV 50/70%"};
+  const gc = (v) => v == null ? "text-gray-300" : v <= 0 ? "text-emerald-600" : v <= 5 ? "text-amber-500" : "text-red-500";
+
+  return (
+    <div className="space-y-4">
+      {/* 선택 패널 */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="text-sm font-bold text-gray-700 mb-3">🔍 비교 대상 선택</div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <div className="text-[11px] text-gray-500 mb-1.5">재건축 단지</div>
+            <select value={reconId} onChange={e => setReconId(parseInt(e.target.value))}
+              className="w-full text-xs px-2 py-2 rounded-xl border border-gray-200 bg-white outline-none">
+              {complexes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <div className="text-[11px] text-gray-500 mb-1.5">일반 매물</div>
+            <select value={regId} onChange={e => setRegId(parseInt(e.target.value))}
+              className="w-full text-xs px-2 py-2 rounded-xl border border-gray-200 bg-white outline-none">
+              {regularComplexes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <div className="text-[11px] text-gray-500 mb-1.5">대출 시나리오</div>
+            <div className="flex gap-1">
+              {[["s1","S1"],["s2","S2"],["s3","S3"]].map(([k,l]) => (
+                <button key={k} onClick={() => setScenario(k)}
+                  className={`flex-1 text-xs py-2 rounded-xl transition-all ${scenario===k ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"}`}>{l}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 비교 카드 */}
+      <div className="grid grid-cols-2 gap-4">
+        {[["🏗️ 재건축", recon, rg, true], ["🏠 일반 매물", reg, gg, false]].map(([title, c, g, isRecon]) => (
+          <div key={title} className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="text-xs font-bold text-gray-500 mb-2">{title}</div>
+            {!c ? <div className="text-gray-300 text-xs">선택 없음</div> : <>
+              <div className="text-lg font-bold text-gray-900 mb-1">{c.name}</div>
+              <div className="text-xs text-gray-400 mb-3">{c.district} · {c.buildYear}년 · {c.totalUnits.toLocaleString()}세대</div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">84㎡ 시세</span>
+                  <span className="font-bold text-gray-800">{g?.tp}억</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">대출 ({scenLabel[scenario]})</span>
+                  <span className="font-semibold text-blue-600">{g?.loan}억</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">부대비용 (취득세+중개+양도세)</span>
+                  <span className="font-semibold text-orange-600">+{g?.extra}억</span>
+                </div>
+                {isRecon && recon && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">예상 분담금</span>
+                    <span className="font-semibold text-violet-600">{recon.contribution.low}~{recon.contribution.high}억 <span className="text-gray-300">(별도)</span></span>
+                  </div>
+                )}
+                {!isRecon && c && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">전세가</span>
+                    <span className="font-semibold text-gray-400 line-through">{c.jeonsePrice}억 <span className="text-[10px] text-red-400 no-underline">(토허제 실거주 의무)</span></span>
+                  </div>
+                )}
+                <div className="border-t border-gray-100 pt-2 flex justify-between">
+                  <span className="text-xs font-bold text-gray-600">실질 갭 (부대비용 포함)</span>
+                  <span className={`text-base font-bold ${gc(g?.tot)}`}>{g?.tot > 0 ? `+${g?.tot}억` : `${g?.tot}억`}</span>
+                </div>
+              </div>
+            </>}
+          </div>
+        ))}
+      </div>
+
+      {/* 결론 */}
+      {rg && gg && (
+        <div className="bg-blue-50 rounded-2xl p-4 space-y-2">
+          <div className="text-xs font-bold text-blue-700">📊 {scenLabel[scenario]} 기준 비교 결론</div>
+          <div className="text-sm text-blue-800">
+            {recon?.name} vs {reg?.name} —&nbsp;
+            <span className="font-bold">{Math.abs(rg.tot - gg.tot).toFixed(1)}억 차이</span>&nbsp;·&nbsp;
+            <span className="font-bold">{rg.tot < gg.tot ? `${recon?.name}이 갭 유리` : `${reg?.name}이 갭 유리`}</span>
+          </div>
+          {recon && <div className="text-[11px] text-blue-600">※ 재건축은 분담금 {recon.contribution.low}~{recon.contribution.high}억이 입주 시점에 추가 납부</div>}
+          <div className="bg-red-50 rounded-xl px-3 py-2 text-[11px] text-red-600 flex items-start gap-1.5">
+            <span>⚠️</span>
+            <span>서울 전역 토지거래허가구역 적용 중 — 재건축·일반매물 모두 <strong>실거주 의무</strong>. 전세 끼고 매수 불가. 갭 전액 현금 조달 기준으로 판단하세요.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-4xl mb-4">🏗️</div>
+        <div className="text-gray-500 text-sm">데이터 불러오는 중...</div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [COMPLEXES,         setCOMPLEXES]         = useState([]);
+  const [REGULAR_COMPLEXES, setREGULAR_COMPLEXES] = useState([]);
+  const [myHome,            setMyHome]             = useState(null);
+  const [loading,           setLoading]            = useState(true);
+
+  // 모드: "recon" | "regular" | "compare"
+  const [mode, setMode] = useState("recon");
+
+  // 재건축 탭 상태
+  const [expandedId,      setExpandedId]      = useState(null);
+  const [filterDistrict,  setFilterDistrict]  = useState("전체");
+  const [filterStage,     setFilterStage]     = useState("전체");
+  const [sortBy,          setSortBy]          = useState("stage");
+  const [view,            setView]            = useState("cards");
+
+  // 일반 매물 탭 상태
+  const [regExpanded,     setRegExpanded]     = useState(null);
+  const [regFilterDist,   setRegFilterDist]   = useState("전체");
+  const [regFilterTag,    setRegFilterTag]    = useState("전체");
+  const [regView,         setRegView]         = useState("cards");
+
+  // 공유 자산/비용 상태 (GapTracker와 동일)
+  const [loan,       setLoan]       = useState(8.5);
+  const [buyPrice,   setBuyPrice]   = useState(13.9);
+  const [holdYears,  setHoldYears]  = useState(7);
+  const [liveYears,  setLiveYears]  = useState(2);
+  const [brokerRate, setBrokerRate] = useState(0.5);
+
+  useEffect(() => {
+    fetch('./data.json?v=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCOMPLEXES(data);
+        } else {
+          setCOMPLEXES(data.complexes || []);
+          setREGULAR_COMPLEXES(data.regularComplexes || []);
+          setMyHome(data.myHome || null);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // 갭 계산을 위한 공통 파라미터
+  const sellPrice = myHome?.latestPrice || 0;
+  const netAsset  = parseFloat((sellPrice - loan).toFixed(1));
+  const yangdoTax = calcYangdoTax(buyPrice, sellPrice, holdYears, liveYears, true);
+  const sellBroker = sellPrice > 0 ? parseFloat((sellPrice*(brokerRate/100)).toFixed(1)) : 0;
+
+  const gapSettings = { netAsset, yangdoTax, sellBroker, brokerRate };
+
+  const calcGapForComplex = (c) => {
+    if (!c) return null;
+    const tp = (c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length-1])?.mid || 0;
+    const acquTax   = parseFloat((tp > 9 ? tp*0.03 : tp > 6 ? tp*((tp-6)*(2/3)+1)/100 : tp*0.01).toFixed(1));
+    const buyBroker = parseFloat((tp*(brokerRate/100)).toFixed(1));
+    const extra     = parseFloat((yangdoTax + sellBroker + acquTax + buyBroker).toFixed(1));
+    const l1 = tp >= 25 ? 2 : 0;
+    const l2 = parseFloat((tp*0.4).toFixed(1));
+    const l3 = parseFloat((tp*(SCENARIO2_DISTRICTS.includes(c.district) ? 0.5 : 0.7)).toFixed(1));
+    const base = (l) => parseFloat((tp - netAsset - l).toFixed(1));
+    const tot  = (l) => parseFloat((base(l) + extra).toFixed(1));
+    return { tp, acquTax, buyBroker, extra, loanS1:l1, loanS2:l2, loanS3:l3,
+             base1:base(l1), base2:base(l2), base3:base(l3),
+             tot1:tot(l1), tot2:tot(l2), tot3:tot(l3) };
+  };
+
+  const regGapMap = useMemo(() => {
+    const m = {};
+    REGULAR_COMPLEXES.forEach(c => { m[c.id] = calcGapForComplex(c); });
+    return m;
+  }, [REGULAR_COMPLEXES, netAsset, yangdoTax, sellBroker, brokerRate]);
+
+  // 재건축 필터
+  const districts    = useMemo(() => ["전체", ...new Set(COMPLEXES.map(c => c.district))], [COMPLEXES]);
+  const stageOptions = useMemo(() => {
+    const used = new Set(COMPLEXES.map(c => c.stage));
+    return ["전체", ...STAGES.filter((_, i) => used.has(i)).map(s => s.short)];
+  }, [COMPLEXES]);
+  const filtered = useMemo(() => {
+    let list = [...COMPLEXES];
+    if (filterDistrict !== "전체") list = list.filter(c => c.district === filterDistrict);
+    if (filterStage !== "전체") { const idx = STAGES.findIndex(s => s.short === filterStage); list = list.filter(c => c.stage === idx); }
+    const getRef = c => (c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length-1]).mid;
+    if (sortBy === "stage")      list.sort((a,b) => b.stage - a.stage);
+    if (sortBy === "price_desc") list.sort((a,b) => getRef(b) - getRef(a));
+    if (sortBy === "price_asc")  list.sort((a,b) => getRef(a) - getRef(b));
+    if (sortBy === "listings")   list.sort((a,b) => b.listings - a.listings);
+    return list;
+  }, [COMPLEXES, filterDistrict, filterStage, sortBy]);
+
+  // 일반 매물 필터
+  const regDistricts = useMemo(() => ["전체", ...new Set(REGULAR_COMPLEXES.map(c => c.district))], [REGULAR_COMPLEXES]);
+  const allTags = ["전체","학군","실거주","시세차익"];
+  const filteredReg = useMemo(() => {
+    let list = [...REGULAR_COMPLEXES];
+    if (regFilterDist !== "전체") list = list.filter(c => c.district === regFilterDist);
+    if (regFilterTag  !== "전체") list = list.filter(c => c.tags.includes(regFilterTag));
+    return list;
+  }, [REGULAR_COMPLEXES, regFilterDist, regFilterTag]);
+
+  const summary = useMemo(() => {
+    if (!COMPLEXES.length) return null;
+    const getRef = c => (c.priceBySize.find(p => p.size === "84㎡") || c.priceBySize[c.priceBySize.length-1]).mid;
+    return {
+      reconCount: COMPLEXES.length,
+      regCount:   REGULAR_COMPLEXES.length,
+      reconAvg:   (COMPLEXES.reduce((s,c) => s+getRef(c), 0)/COMPLEXES.length).toFixed(1),
+      regAvg:     REGULAR_COMPLEXES.length ? (REGULAR_COMPLEXES.reduce((s,c) => s+getRef(c), 0)/REGULAR_COMPLEXES.length).toFixed(1) : "—",
+      mostAdvanced: [...COMPLEXES].sort((a,b) => b.stage - a.stage)[0],
+    };
+  }, [COMPLEXES, REGULAR_COMPLEXES]);
+
+  const handleToggle  = id => setExpandedId(prev => prev === id ? null : id);
+  const handlePipeSel = id => { setExpandedId(id); setView("cards"); setTimeout(() => document.getElementById(`card-${id}`)?.scrollIntoView({behavior:"smooth",block:"center"}), 100); };
+
+  if (loading) return <LoadingScreen />;
+  if (!summary) return <div className="text-center py-20 text-red-500">데이터 로드 실패</div>;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* 헤더 */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">서울 아파트 투자 대시보드</h1>
+            <p className="text-sm text-gray-500 mt-1">재건축 {summary.reconCount}개 · 일반매물 {summary.regCount}개 · 실거래 기반 자동 업데이트</p>
+          </div>
+          <div className="flex gap-2">
+            <a href="https://search.naver.com/search.naver?query=아파트+매매" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200">네이버 부동산 ↗</a>
+            <a href="https://hogangnono.com/" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 font-medium hover:bg-orange-200">호갱노노 ↗</a>
+          </div>
+        </div>
+      </div>
+
+      {/* 최상단 탭 */}
+      <div className="flex gap-2 mb-5">
+        {[["recon","🏗️ 재건축 투자"],["regular","🏠 일반 매물"],["compare","⚖️ 재건축 vs 일반 비교"],["gap","💰 갭 트래커"]].map(([m, label]) => (
+          <button key={m} onClick={() => setMode(m)}
+            className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all ${
+              mode === m
+                ? m === "gap" ? "bg-emerald-600 text-white" : m === "compare" ? "bg-indigo-600 text-white" : "bg-blue-600 text-white"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+            }`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 재건축 탭 ── */}
+      {mode === "recon" && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <SummaryCard label="재건축 단지" value={`${summary.reconCount}개`} sub="추적 중" color="bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900" />
+            <SummaryCard label="84㎡ 평균" value={`${summary.reconAvg}억`} sub="최근 실거래 기준" color="bg-gradient-to-br from-purple-50 to-purple-100 text-purple-900" />
+            <SummaryCard label="최선행" value={summary.mostAdvanced.name.split(" ")[0]} sub={`${STAGES[summary.mostAdvanced.stage].short} ${summary.mostAdvanced.stageStatus==="completed"?"완료":"진행중"}`} color="bg-gradient-to-br from-rose-50 to-rose-100 text-rose-900" />
+            <SummaryCard label="내 순자산" value={`${netAsset.toFixed(1)}억`} sub={`${myHome?.name||"—"} 기준`} color="bg-gradient-to-br from-teal-50 to-teal-100 text-teal-900" />
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5">
+            <div className="text-xs font-semibold text-gray-500 mb-2">재건축 진행 단계</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {STAGES.map((s, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <div className={`w-3 h-3 rounded-full ${s.color}`} />
+                  <span className="text-xs text-gray-600">{s.short}</span>
+                  {i < STAGES.length-1 && <span className="text-gray-300 text-xs">→</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 mb-5 items-center justify-between">
+            <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+                {districts.map(d => <button key={d} onClick={() => setFilterDistrict(d)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${filterDistrict===d?"bg-blue-600 text-white":"text-gray-600 hover:bg-gray-100"}`}>{d}</button>)}
+              </div>
+              <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+                {stageOptions.map(s => <button key={s} onClick={() => setFilterStage(s)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${filterStage===s?"bg-violet-600 text-white":"text-gray-600 hover:bg-gray-100"}`}>{s}</button>)}
+              </div>
+            </div>
+            <div className="flex gap-2 items-center">
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-xs px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 outline-none">
+                <option value="stage">단계순</option>
+                <option value="price_desc">시세 높은순</option>
+                <option value="price_asc">시세 낮은순</option>
+                <option value="listings">매물 많은순</option>
+              </select>
+              <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+                {[["cards","카드"],["pipeline","단계"],["table","비교표"]].map(([v,l]) => (
+                  <button key={v} onClick={() => setView(v)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${view===v?"bg-gray-800 text-white":"text-gray-600 hover:bg-gray-100"}`}>{l}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {view === "cards" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filtered.map(c => <div key={c.id} id={`card-${c.id}`}><ComplexCard c={c} expanded={expandedId===c.id} onToggle={() => handleToggle(c.id)} /></div>)}
+              {!filtered.length && <div className="col-span-3 text-center py-16 text-gray-400">조건에 맞는 단지가 없습니다.</div>}
+            </div>
+          )}
+          {view === "pipeline" && <PipelineView complexes={filtered} onSelect={handlePipeSel} selectedId={expandedId} />}
+          {view === "table"    && <PriceTable complexes={filtered} />}
+        </>
+      )}
+
+      {/* ── 일반 매물 탭 ── */}
+      {mode === "regular" && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <SummaryCard label="일반 매물" value={`${summary.regCount}개`} sub="추적 중" color="bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-900" />
+            <SummaryCard label="84㎡ 평균" value={`${summary.regAvg}억`} sub="최근 실거래 기준" color="bg-gradient-to-br from-purple-50 to-purple-100 text-purple-900" />
+            <SummaryCard label="내 순자산" value={`${netAsset.toFixed(1)}억`} sub={`${myHome?.name||"—"} 기준`} color="bg-gradient-to-br from-teal-50 to-teal-100 text-teal-900" />
+            <SummaryCard label="갭 기준" value="S1 현행" sub="25억↑ 대출 2억" color="bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900" />
+          </div>
+          <div className="flex flex-wrap gap-3 mb-5 items-center justify-between">
+            <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+                {regDistricts.map(d => <button key={d} onClick={() => setRegFilterDist(d)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${regFilterDist===d?"bg-indigo-600 text-white":"text-gray-600 hover:bg-gray-100"}`}>{d}</button>)}
+              </div>
+              <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+                {allTags.map(t => <button key={t} onClick={() => setRegFilterTag(t)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${regFilterTag===t?"bg-amber-500 text-white":"text-gray-600 hover:bg-gray-100"}`}>{t}</button>)}
+              </div>
+            </div>
+            <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1">
+              {[["cards","카드"],["table","비교표"]].map(([v,l]) => (
+                <button key={v} onClick={() => setRegView(v)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${regView===v?"bg-gray-800 text-white":"text-gray-600 hover:bg-gray-100"}`}>{l}</button>
+              ))}
+            </div>
+          </div>
+          {regView === "cards" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredReg.map(c => <RegularCard key={c.id} c={c} expanded={regExpanded===c.id} onToggle={() => setRegExpanded(p => p===c.id?null:c.id)} gapInfo={regGapMap[c.id]} />)}
+              {!filteredReg.length && <div className="col-span-3 text-center py-16 text-gray-400">조건에 맞는 단지가 없습니다.</div>}
+            </div>
+          )}
+          {regView === "table" && <RegularPriceTable complexes={filteredReg} gapMap={regGapMap} />}
+        </>
+      )}
+
+      {/* ── 비교 탭 ── */}
+      {mode === "compare" && (
+        <CompareView complexes={COMPLEXES} regularComplexes={REGULAR_COMPLEXES} myHome={myHome} gapSettings={gapSettings} />
+      )}
+
+      {/* ── 갭 트래커 탭 ── */}
+      {mode === "gap" && (
+        <GapTracker complexes={COMPLEXES} regularComplexes={REGULAR_COMPLEXES} myHome={myHome} />
+      )}
+
+      <div className="mt-10 text-center text-xs text-gray-400 space-y-1">
+        <div>데이터 출처: 국토교통부 실거래가 API · 네이버 부동산 · 호갱노노 · 아실 / 투자 전 직접 확인 필수</div>
+        <div>단지 추가·수정: <strong>data.json</strong> 파일 편집</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
