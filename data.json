@@ -46,7 +46,7 @@
           "high": 37.7
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 42,
       "recentTx": [
         {
@@ -137,7 +137,7 @@
           "high": 38.6
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 52,
       "recentTx": [
         {
@@ -219,14 +219,20 @@
         {
           "size": "126㎡",
           "pyeong": 38,
-          "low": 36.5,
-          "mid": 36.5,
-          "high": 36.5
+          "low": 36.8,
+          "mid": 36.8,
+          "high": 36.8
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 78,
       "recentTx": [
+        {
+          "date": "2026.10",
+          "size": "126㎡",
+          "floor": "저층",
+          "price": 36.5
+        },
         {
           "date": "2026.10",
           "size": "105㎡",
@@ -238,12 +244,6 @@
           "size": "84㎡",
           "floor": "고층",
           "price": 27.5
-        },
-        {
-          "date": "2026.10",
-          "size": "105㎡",
-          "floor": "중층",
-          "price": 29.5
         }
       ],
       "contribution": {
@@ -315,7 +315,7 @@
           "high": 27.3
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 14,
       "recentTx": [
         {
@@ -406,7 +406,7 @@
           "high": 30.2
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 28,
       "recentTx": [
         {
@@ -497,7 +497,7 @@
           "high": 46.5
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 18,
       "recentTx": [
         {
@@ -588,7 +588,7 @@
           "high": 40
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 12,
       "recentTx": [
         {
@@ -670,12 +670,12 @@
         {
           "size": "126㎡",
           "pyeong": 49,
-          "low": 42.5,
-          "mid": 42.5,
-          "high": 42.5
+          "low": 42.3,
+          "mid": 42.3,
+          "high": 42.3
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 8,
       "recentTx": [
         {
@@ -762,7 +762,7 @@
           "high": 27.8
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 45,
       "recentTx": [
         {
@@ -848,9 +848,9 @@
         {
           "size": "84㎡",
           "pyeong": 25,
-          "low": 19.6,
-          "mid": 19.6,
-          "high": 19.6
+          "low": 30.3,
+          "mid": 30.3,
+          "high": 30.3
         },
         {
           "size": "105㎡",
@@ -860,7 +860,7 @@
           "high": 37
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 12,
       "recentTx": [
         {
@@ -874,12 +874,6 @@
           "size": "59㎡",
           "floor": "저층",
           "price": 28.0
-        },
-        {
-          "date": "2025.11",
-          "size": "84㎡",
-          "floor": "저층",
-          "price": 18.0
         }
       ],
       "contribution": {
@@ -935,16 +929,16 @@
         {
           "size": "42㎡",
           "pyeong": 12,
-          "low": 18.0,
-          "mid": 18.0,
-          "high": 18.0
+          "low": 18.4,
+          "mid": 18.4,
+          "high": 18.4
         },
         {
           "size": "84㎡",
           "pyeong": 24,
-          "low": 23.6,
-          "mid": 23.6,
-          "high": 23.6
+          "low": 23.3,
+          "mid": 23.3,
+          "high": 23.3
         },
         {
           "size": "105㎡",
@@ -954,7 +948,7 @@
           "high": 24.9
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 10,
       "recentTx": [
         {
@@ -1048,7 +1042,7 @@
           "high": 33
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "listings": 8,
       "recentTx": [
         {
@@ -1236,8 +1230,8 @@
     "pyeong": 25,
     "targetArea": 59,
     "searchName": "금호파크힐스",
-    "latestPrice": 21.6,
-    "latestDate": "2026.09",
+    "latestPrice": 21.7,
+    "latestDate": "2026.10",
     "defaultLoan": 8.5
   },
   "regularComplexes": [
@@ -1258,16 +1252,16 @@
         {
           "size": "59㎡",
           "pyeong": 18,
-          "low": 29.6,
-          "mid": 29.6,
-          "high": 29.6
+          "low": 29.4,
+          "mid": 29.4,
+          "high": 29.4
         },
         {
           "size": "84㎡",
           "pyeong": 25,
-          "low": 33.4,
-          "mid": 33.4,
-          "high": 33.4
+          "low": 33.0,
+          "mid": 33.0,
+          "high": 33.0
         },
         {
           "size": "120㎡",
@@ -1277,7 +1271,7 @@
           "high": 65
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 16,
       "jeonseRatio": 0.41,
       "listings": 85,
@@ -1285,20 +1279,20 @@
         {
           "date": "2026.10",
           "size": "84㎡",
-          "floor": "고층",
-          "price": 33.1
+          "floor": "중층",
+          "price": 31.0
+        },
+        {
+          "date": "2026.10",
+          "size": "59㎡",
+          "floor": "중층",
+          "price": 26.5
         },
         {
           "date": "2026.10",
           "size": "84㎡",
-          "floor": "고층",
-          "price": 33.7
-        },
-        {
-          "date": "2026.09",
-          "size": "84㎡",
-          "floor": "고층",
-          "price": 32.0
+          "floor": "중층",
+          "price": 31.0
         }
       ],
       "note": "잠실 HHBT(엘스·헬리오시티·리센츠·트리지움) 대장. 잠일초 학군 최강. 잠실역 도보권. 2008년 준공 신축급 유지",
@@ -1344,28 +1338,28 @@
           "high": 63
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 16,
       "jeonseRatio": 0.42,
       "listings": 72,
       "recentTx": [
         {
+          "date": "2026.10",
+          "size": "84㎡",
+          "floor": "중층",
+          "price": 33.5
+        },
+        {
+          "date": "2026.10",
+          "size": "114㎡",
+          "floor": "중층",
+          "price": 39.5
+        },
+        {
           "date": "2026.09",
           "size": "84㎡",
           "floor": "고층",
           "price": 33.6
-        },
-        {
-          "date": "2026.09",
-          "size": "84㎡",
-          "floor": "고층",
-          "price": 36.0
-        },
-        {
-          "date": "2026.08",
-          "size": "114㎡",
-          "floor": "고층",
-          "price": 43.0
         }
       ],
       "note": "잠실 HHBT 4인방. 엘스와 사실상 동급. 2호선 잠실역 직접연결. 단지규모·학군 모두 최상급",
@@ -1392,9 +1386,9 @@
         {
           "size": "59㎡",
           "pyeong": 18,
-          "low": 28.4,
-          "mid": 28.4,
-          "high": 28.4
+          "low": 28.7,
+          "mid": 28.7,
+          "high": 28.7
         },
         {
           "size": "84㎡",
@@ -1411,11 +1405,17 @@
           "high": 60
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 15,
       "jeonseRatio": 0.42,
       "listings": 55,
       "recentTx": [
+        {
+          "date": "2026.10",
+          "size": "105㎡",
+          "floor": "고층",
+          "price": 37.5
+        },
         {
           "date": "2026.10",
           "size": "59㎡",
@@ -1423,16 +1423,10 @@
           "price": 29.2
         },
         {
-          "date": "2026.09",
-          "size": "84㎡",
-          "floor": "중층",
-          "price": 32.5
-        },
-        {
-          "date": "2026.09",
-          "size": "84㎡",
-          "floor": "고층",
-          "price": 32.0
+          "date": "2026.10",
+          "size": "59㎡",
+          "floor": "저층",
+          "price": 29.0
         }
       ],
       "note": "잠실 HHBT 중 가격 메리트 있는 단지. 엘스·리센츠와 동일 학군. 잠실역 인근",
@@ -1470,7 +1464,7 @@
           "high": 38
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 9,
       "jeonseRatio": 0.36,
       "listings": 18,
@@ -1538,7 +1532,7 @@
           "high": 50.5
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 18,
       "jeonseRatio": 0.4,
       "listings": 45,
@@ -1586,9 +1580,9 @@
         {
           "size": "84㎡",
           "pyeong": 26,
-          "low": 26.0,
-          "mid": 26.0,
-          "high": 26.0
+          "low": 25.9,
+          "mid": 25.9,
+          "high": 25.9
         },
         {
           "size": "126㎡",
@@ -1598,7 +1592,7 @@
           "high": 37
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 12,
       "jeonseRatio": 0.39,
       "listings": 22,
@@ -1646,9 +1640,9 @@
         {
           "size": "59㎡",
           "pyeong": 18,
-          "low": 24.4,
-          "mid": 24.4,
-          "high": 24.4
+          "low": 24.2,
+          "mid": 24.2,
+          "high": 24.2
         },
         {
           "size": "84㎡",
@@ -1665,11 +1659,17 @@
           "high": 33.0
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 14,
       "jeonseRatio": 0.41,
       "listings": 30,
       "recentTx": [
+        {
+          "date": "2026.10",
+          "size": "59㎡",
+          "floor": "중층",
+          "price": 23.8
+        },
         {
           "date": "2026.09",
           "size": "59㎡",
@@ -1681,12 +1681,6 @@
           "size": "59㎡",
           "floor": "중층",
           "price": 24.1
-        },
-        {
-          "date": "2026.09",
-          "size": "59㎡",
-          "floor": "저층",
-          "price": 23.8
         }
       ],
       "note": "이촌동 한강변 대단지. 용산공원 개발 수혜권. 4호선 이촌역 도보. 한강 조망 세대 다수. 용산 개발 기대감 꾸준",
@@ -1781,27 +1775,27 @@
           "high": 76
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 18,
       "listings": 25,
       "recentTx": [
         {
           "date": "2026.10",
           "size": "59㎡",
-          "floor": "고층",
-          "price": 29.6
-        },
-        {
-          "date": "2026.08",
-          "size": "59㎡",
           "floor": "중층",
-          "price": 28.0
+          "price": 29.0
         },
         {
-          "date": "2026.07",
+          "date": "2026.10",
           "size": "84㎡",
           "floor": "고층",
-          "price": 39.5
+          "price": 35.5
+        },
+        {
+          "date": "2026.10",
+          "size": "59㎡",
+          "floor": "고층",
+          "price": 29.6
         }
       ],
       "note": "개포주공4단지 재건축. 2021년 준공. GS건설 시공. 개포동 신축 대장. 대치동 학원가 인접. 3호선 대청역·개포동역 역세권",
@@ -1843,15 +1837,21 @@
         {
           "size": "114㎡",
           "pyeong": 35,
-          "low": 47.5,
-          "mid": 47.5,
-          "high": 47.5
+          "low": 48.0,
+          "mid": 48.0,
+          "high": 48.0
         }
       ],
-      "priceLastUpdated": "2026.10",
+      "priceLastUpdated": "2026.11",
       "jeonsePrice": 19,
       "listings": 20,
       "recentTx": [
+        {
+          "date": "2026.10",
+          "size": "105㎡",
+          "floor": "고층",
+          "price": 40.7
+        },
         {
           "date": "2026.09",
           "size": "59㎡",
@@ -1863,12 +1863,6 @@
           "size": "84㎡",
           "floor": "중층",
           "price": 44.0
-        },
-        {
-          "date": "2026.07",
-          "size": "84㎡",
-          "floor": "고층",
-          "price": 39.8
         }
       ],
       "note": "반포동 신축. 2022년 준공 GS건설 시공. 1,682세대. 반포역 도보권. 서초구 대표 신축 대단지. 학군·실거주 모두 우수",
